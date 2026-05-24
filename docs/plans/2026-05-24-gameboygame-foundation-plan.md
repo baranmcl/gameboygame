@@ -77,7 +77,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 
 ## Execution Status
 
-**Overall:** 5/8 phases shipped, 0 deferred.
+**Overall:** 6/8 phases shipped, 0 deferred. **Engine layer complete (5/5 subsystems).**
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -86,7 +86,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 | 3 — Engine: input | ✅ Shipped | `b863381` | 2026-05-24; edge detection + auto-repeat working in mGBA |
 | 4 — Engine: save | ✅ Shipped | `a930db0` | 2026-05-24; SRAM persistence + magic/version/checksum validation working in mGBA |
 | 5 — Engine: sound | ✅ Shipped | `a03a9c8` | 2026-05-24; all 9 SFX audibly distinct in mGBA (pitch calibration deferred to Plan C) |
-| 6 — Engine: anim | ⬜ Not started | — | — |
+| 6 — Engine: anim | ✅ Shipped | `b0a28fe` | 2026-05-24; WRONG_SHAKE real, 6 others stub-for-Plan-B; mGBA visual confirmation received |
 | 7 — Game: puzzle_logic + tests | ⬜ Not started | — | TDD required (host-testable) |
 | 8 — Puzzle JSON pipeline | ⬜ Not started | — | TDD required (Python unittest) |
 
@@ -1474,7 +1474,7 @@ git commit -m "5: implement sound subsystem — 9 SFX via GB sound channel regis
 
 ## Phase 6 — Engine: animation subsystem
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `b0a28fe` on 2026-05-24. All 4 tasks complete: `src/engine/anim.{h,c}` implement a single-active-anim engine with type-dispatched tick. ANIM_WRONG_SHAKE has a real implementation (alternating SCX ±1 each frame, restoring SCX=0 on completion); the other 6 AnimTypes (SELECT_FLASH, CELL_FLASH, CORRECT_FLASH, LAYOUT_REFLOW, BAR_CASCADE, STATS_FADE, LOSE_REVEAL) advance the frame counter and end on duration — Plan B replaces each stub with real visuals. `src/main.c` smoke-test triggers WRONG_SHAKE on A and SELECT_FLASH stub on B, with `anim_is_playing()` gating re-presses. mGBA visual confirmation received from user. **This completes Plan A's engine layer (5/5 subsystems).**
 
 **Goal**: Build the animation engine — one active animation at a time, frame-counter advanced per VBlank, type-dispatched render. Smoke test: `main.c` triggers a flash animation when A is pressed, verifies the screen briefly inverts.
 
