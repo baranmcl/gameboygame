@@ -12,8 +12,27 @@ LCC := lcc
 #  so we omit it entirely. The cartridge header's CGB flag stays at 0x00 = DMG.)
 LCC_FLAGS := -Wm-yt0x03 -Wm-yo4 -Wm-ya1 -Wm-yn"GBCX"
 
+# Asset conversion (png2asset → C tile data)
+# Flags rationale:
+#   -spr8x8             : emit 8x8 tiles in row-major order (default -spr8x16
+#                         pairs vertically-adjacent cells into 8x16 sprite-tiles
+#                         and interleaves them — tile 1 ends up as '0', not '!')
+#   -sprite_no_optimize : keep empty + duplicate tiles so tile index matches
+#                         (ascii - 0x20). Without this, the all-zero space tile
+#                         is deduplicated and every subsequent glyph shifts.
+#   -tiles_only         : emit only background tile bytes, no metasprite metadata
+#   -keep_palette_order : preserve our DMG-ordered palette (light → dark)
+#   -noflip             : disable horizontal/vertical flip optimizations
+ASSETS_PNG := assets/font.png
+ASSETS_GEN := $(patsubst assets/%.png,src/assets_gen/%.c,$(ASSETS_PNG))
+
+src/assets_gen/%.c: assets/%.png
+	@mkdir -p $(dir $@)
+	png2asset $< -o $@ -spr8x8 -bpp 2 -keep_palette_order -sprite_no_optimize -tiles_only -noflip
+
 # Source files
-SRC := src/main.c
+SRC := src/main.c src/engine/render.c
+SRC += $(ASSETS_GEN)
 OBJ := $(patsubst src/%.c,build/%.o,$(SRC))
 
 # Output ROM

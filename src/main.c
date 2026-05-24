@@ -1,12 +1,14 @@
-// src/main.c
 #include <gb/gb.h>
-#include <stdint.h>
+#include "engine/render.h"
 
 void main(void) {
-    // Set the background palette to standard 4-shade
-    BGP_REG = 0xE4;  // 11 10 01 00 — dark to light
+    BGP_REG = 0xE4;
 
-    // For now, just display a banner via SCREEN_ON; later phases hook in real rendering.
+    render_init();
+    render_text(2, 2, "RENDER OK");
+    render_text(2, 4, "PLAN A PHASE 2");
+    render_flush();
+
     SHOW_BKG;
     DISPLAY_ON;
 
