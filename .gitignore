@@ -1,3 +1,10 @@
+# Build artifacts (object files, intermediates, ROM output)
+build/
+
+# Generated source files (Python codegen output, png2asset output)
+src/puzzles_data.c
+src/assets_gen/
+
 # Visual brainstorm artifacts (mockups, session state)
 .superpowers/
 
