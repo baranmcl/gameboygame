@@ -1,0 +1,8 @@
+# Visual brainstorm artifacts (mockups, session state)
+.superpowers/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
