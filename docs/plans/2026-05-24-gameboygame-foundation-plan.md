@@ -77,7 +77,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 
 ## Execution Status
 
-**Overall:** 4/8 phases shipped, 0 deferred.
+**Overall:** 5/8 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -85,7 +85,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 | 2 — Engine: render | ✅ Shipped | `ef5b12b` | 2026-05-24; ROM builds at 64KB MBC1+RAM+BATT, tile data spot-verified, mGBA visual confirmation received |
 | 3 — Engine: input | ✅ Shipped | `b863381` | 2026-05-24; edge detection + auto-repeat working in mGBA |
 | 4 — Engine: save | ✅ Shipped | `a930db0` | 2026-05-24; SRAM persistence + magic/version/checksum validation working in mGBA |
-| 5 — Engine: sound | ⬜ Not started | — | — |
+| 5 — Engine: sound | ✅ Shipped | `a03a9c8` | 2026-05-24; all 9 SFX audibly distinct in mGBA (pitch calibration deferred to Plan C) |
 | 6 — Engine: anim | ⬜ Not started | — | — |
 | 7 — Game: puzzle_logic + tests | ⬜ Not started | — | TDD required (host-testable) |
 | 8 — Puzzle JSON pipeline | ⬜ Not started | — | TDD required (Python unittest) |
@@ -1148,7 +1148,7 @@ git commit -m "4: implement save subsystem — MBC1 SRAM with magic/version/chec
 
 ## Phase 5 — Engine: sound subsystem
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `a03a9c8` on 2026-05-24. All 4 tasks complete: `src/engine/sound.{h,c}` implement 9 SFX via GB sound channel registers (NR10–NR52), with single-tick SFX (move/select/deselect/reject) using CH2 + CH4 trigger writes and multi-step SFX (correct/wrong/win/lose/skip) sequenced by `sound_tick()` called once per VBlank. `src/main.c` smoke-test maps each SFX to a button. mGBA audio confirmation from user — all 9 SFX produce audibly distinct sounds. Note: NR13/NR14 frequency byte values are placeholder estimates; pitch calibration deferred to Plan C per spec §13.
 
 **Goal**: Build 9 SFX functions per the spec, each as a hardcoded sequence of GB sound register writes. Smoke test: `main.c` triggers each SFX in turn when player presses a specific button, audio confirms each works in BGB.
 
