@@ -1,5 +1,6 @@
 #include "render.h"
 #include "../assets_gen/font.h"
+#include "../assets_gen/ui_tiles.h"
 #include <gb/gb.h>
 #include <string.h>
 
@@ -8,6 +9,7 @@ static uint8_t dirty = 0;
 
 void render_init(void) {
     set_bkg_data(0, font_TILE_COUNT, font_tiles);
+    set_bkg_data(UI_TILE_BASE, ui_tiles_TILE_COUNT, ui_tiles_tiles);
     render_clear();
 }
 
@@ -26,6 +28,12 @@ void render_text(uint8_t x, uint8_t y, const char *s) {
         s++;
         x++;
     }
+    dirty = 1;
+}
+
+void render_set_tile(uint8_t x, uint8_t y, uint8_t tile) {
+    if (x >= SCREEN_TILES_W || y >= SCREEN_TILES_H) return;
+    tilemap_buf[y * SCREEN_TILES_W + x] = tile;
     dirty = 1;
 }
 
