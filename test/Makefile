@@ -19,12 +19,17 @@ export TEMP := /tmp
 
 .PHONY: test clean
 
-test: test_puzzle_logic
+test: test_puzzle_logic test_layout
 	./test_puzzle_logic
+	./test_layout
 
 test_puzzle_logic: test_puzzle_logic.c ../src/game/puzzle_logic.c
 	@mkdir -p /tmp
 	$(CC) $(CFLAGS) -o $@ $^
 
+test_layout: test_layout.c ../src/game/layout.c
+	@mkdir -p /tmp
+	$(CC) $(CFLAGS) -o $@ $^
+
 clean:
-	rm -f test_puzzle_logic test_puzzle_logic.exe
+	rm -f test_puzzle_logic test_puzzle_logic.exe test_layout test_layout.exe

@@ -4,6 +4,8 @@ build/
 # Host-side test binaries
 test/test_puzzle_logic
 test/test_puzzle_logic.exe
+test/test_layout
+test/test_layout.exe
 
 # Python bytecode
 __pycache__/
