@@ -77,14 +77,14 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 3/9 phases shipped, 0 deferred.
+**Overall:** 4/9 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Scene dispatch infrastructure | ✅ Shipped | `7e0f9b7` | 2026-05-24; 5-scene cycle works in mGBA |
 | 2 — TDD compute_play_layout() | ✅ Shipped | `dc516c0` | 2026-05-24; 26 assertions across 7 tests, 3 red-green cycles |
 | 3 — UI tile assets + title art | ✅ Shipped | `e56ed26` | 2026-05-24; 13 UI tiles render in mGBA; title.png generated but excluded from ROM build (31KB dead weight) |
-| 4 — SCENE_TITLE | ⬜ Not started | — | adaptive menu + NEW GAME confirm + save writes |
+| 4 — SCENE_TITLE | ✅ Shipped | `f6fe4cb` | 2026-05-24; first-boot menu + NEW GAME confirm flow verified in mGBA (in-progress 3-item menu deferred to Phase 5+ verification) |
 | 5 — SCENE_PLAY rendering + cursor | ⬜ Not started | — | grid + cursor sprite + nav + SELECT_FLASH |
 | 6 — SCENE_PLAY submission + animations | ⬜ Not started | — | START/B logic + CELL_FLASH + CORRECT_FLASH + LAYOUT_REFLOW + transitions |
 | 7 — SCENE_WIN | ⬜ Not started | — | BAR_CASCADE + STATS_FADE + next-puzzle/title flow |
@@ -1286,7 +1286,7 @@ git commit -m "B3: UI tile assets + title art — cursor, borders, 4 tier patter
 
 ## Phase 4 — SCENE_TITLE
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `f6fe4cb` on 2026-05-24. All 6 tasks complete: `scene_title.c` rewritten with TitleState struct + adaptive menu logic (2 items first-boot, 3 items if in-progress save) + NEW GAME confirm overlay + save writes at the documented trigger points (NEW GAME confirm → save_reset + save_store; RESTART → clear ip_* + save_store). mGBA visual confirmation received from user — first-boot menu renders correctly with header/menu/stats footer. 3-item in-progress menu path will be exercised end-to-end starting in Phase 5+ when PLAY actually writes ip_tries_remaining.
 
 **Goal**: Build the real TITLE scene — title art background + adaptive menu (CONTINUE/RESTART/NEW GAME based on save's `ip_tries_remaining`) + menu cursor with auto-repeat + NEW GAME confirm overlay + save writes at the 3 trigger points (CONTINUE = none, RESTART = clear ip_*, NEW GAME = full reset). End state: a polished title screen the user can navigate, with state-aware menu items and confirmed destructive operations.
 
