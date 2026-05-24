@@ -77,7 +77,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 
 ## Execution Status
 
-**Overall:** 6/8 phases shipped, 0 deferred. **Engine layer complete (5/5 subsystems).**
+**Overall:** 7/8 phases shipped, 0 deferred. **Engine layer complete (5/5 subsystems); host-testable game logic landed.**
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -87,7 +87,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 | 4 — Engine: save | ✅ Shipped | `a930db0` | 2026-05-24; SRAM persistence + magic/version/checksum validation working in mGBA |
 | 5 — Engine: sound | ✅ Shipped | `a03a9c8` | 2026-05-24; all 9 SFX audibly distinct in mGBA (pitch calibration deferred to Plan C) |
 | 6 — Engine: anim | ✅ Shipped | `b0a28fe` | 2026-05-24; WRONG_SHAKE real, 6 others stub-for-Plan-B; mGBA visual confirmation received |
-| 7 — Game: puzzle_logic + tests | ⬜ Not started | — | TDD required (host-testable) |
+| 7 — Game: puzzle_logic + tests | ✅ Shipped | `a32b5ce` | 2026-05-24; TDD red→green for all 4 functions, 21 assertions all pass, GBDK-free invariant verified |
 | 8 — Puzzle JSON pipeline | ⬜ Not started | — | TDD required (Python unittest) |
 
 ### Deviations
@@ -1706,7 +1706,7 @@ git commit -m "6: implement animation engine — one active anim + per-type tick
 
 ## Phase 7 — Game: puzzle_logic + host-side tests (TDD REQUIRED)
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `a32b5ce` on 2026-05-24. All 10 tasks complete with strict TDD discipline — each function (`is_group_correct`, `count_selected`, `toggle_selection`, `find_group_of_word`) went through a verified red phase (intentionally-wrong stub returning false/0, test confirmed to fail for the right reason) before being implemented for real. Final state: 21 assertions across 11 test functions, all passing via `make test`. Architectural invariant (`puzzle_logic.c` has no GBDK includes, compiles cleanly under both vanilla gcc and lcc) verified. Required dependency installs: MinGW64 native gcc 16.1.0 (`pacman -S mingw-w64-x86_64-gcc`) — cygwin-based MSYS2 base gcc does not work from Git Bash. See Discoveries for details + Plan Task 7.2 defect notes (gcc availability assumption + missing TMPDIR exports).
 
 **Goal**: Implement the pure logic for puzzle interaction (group correctness, selection toggling, etc.) with TDD-driven host-side unit tests. End state: `make test` runs and passes.
 
