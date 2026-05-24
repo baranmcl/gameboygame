@@ -77,13 +77,13 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 2/9 phases shipped, 0 deferred.
+**Overall:** 3/9 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Scene dispatch infrastructure | ✅ Shipped | `7e0f9b7` | 2026-05-24; 5-scene cycle works in mGBA |
 | 2 — TDD compute_play_layout() | ✅ Shipped | `dc516c0` | 2026-05-24; 26 assertions across 7 tests, 3 red-green cycles |
-| 3 — UI tile assets + title art | ⬜ Not started | — | ui_tiles.png (cursor, borders, 4 tier patterns) + title.png |
+| 3 — UI tile assets + title art | ✅ Shipped | `e56ed26` | 2026-05-24; 13 UI tiles render in mGBA; title.png generated but excluded from ROM build (31KB dead weight) |
 | 4 — SCENE_TITLE | ⬜ Not started | — | adaptive menu + NEW GAME confirm + save writes |
 | 5 — SCENE_PLAY rendering + cursor | ⬜ Not started | — | grid + cursor sprite + nav + SELECT_FLASH |
 | 6 — SCENE_PLAY submission + animations | ⬜ Not started | — | START/B logic + CELL_FLASH + CORRECT_FLASH + LAYOUT_REFLOW + transitions |
@@ -92,10 +92,20 @@ notes and commit messages.
 | 9 — SCENE_ALL_DONE + size check | ⬜ Not started | — | lifetime totals + cycle restart + final ROM size verification |
 
 ### Deviations
-*(none yet — record per the Living Document Contract as they occur)*
+
+- **Phase 3 (2026-05-24): title.png generated but excluded from ROM build.** Plan B Task 3.3 calls for adding `assets/title.png` to `ASSETS_PNG`, which would trigger png2asset → `src/assets_gen/title.c` (5760 bytes of tile data) → ~31KB linker bloat. Plan B's revised Phase 4 already walks back the runtime title.png loading (TITLE scene is text-only), so the asset would be dead weight. Solution: keep `tools/make_title.py` generating the PNG (for Plan C), but only `ASSETS_PNG := assets/font.png assets/ui_tiles.png` in the Makefile. `assets/title.png` is committed to git for Plan C use.
+
+- **Phase 3 (2026-05-24): dropped `render_load_title_tiles()` + `render_restore_default_tiles()`.** Plan B Task 3.4 specified these APIs in `render.h`. Since title.png isn't compiled, referencing `title_tiles` in render.c would cause a linker error. Plan C adds them back when it adopts dynamic VRAM swapping.
+
+- **Phase 3 (2026-05-24): kept `static` on tilemap_buf / dirty.** Plan B Task 3.4 suggested removing `static` so future TUs could access them. Not actually needed — `render_set_tile()` lives in the same TU, so the existing `static` encapsulation works.
 
 ### Discoveries
-*(none yet — record per the Living Document Contract as they occur)*
+
+- **Phase 3 (2026-05-24): Cold builds need an order-only Make dependency on `$(ASSETS_GEN)`.** When `src/assets_gen/` is empty (fresh clone or after `make clean`), Make happily tries to compile `src/engine/render.c` (which `#include`s `../assets_gen/font.h`) before running `png2asset` to generate those headers. Plan A didn't hit this because `font.h` was always present after the first build. Fix: added `build/%.o: src/%.c | $(ASSETS_GEN)` — the order-only `|` means "ensure asset .c files exist before compiling any .c→.o, but don't re-link when they change". Verified by `rm -rf src/assets_gen/ build/ && make` → clean build.
+
+- **Phase 3 (2026-05-24): png2asset emits `BANKREF(name)` macros that require GBDK-2020 metasprite headers.** The generated `ui_tiles.c` and `title.c` both `#include <gbdk/platform.h>` and `<gbdk/metasprites.h>` — same as Plan A's font.c. SDCC + lcc handle these fine, but it does mean every generated asset file pulls in metasprite infrastructure even when we only want raw tile data. Acceptable; not worth working around.
+
+- **Phase 3 (2026-05-24): Plan A's font lacks lowercase glyphs by design.** When scene_title's smoke test rendered "(row 5):", the word "row" rendered as 3 spaces because lowercase ASCII (0x61-0x7A) is outside the font's 0x20-0x5F range and `render_text` falls back to space for unprintables. Worth knowing when authoring later scene text — all user-visible strings must be uppercase.
 
 ---
 
@@ -726,7 +736,7 @@ git commit -m "B2: implement compute_play_layout with TDD — pure function, hos
 
 ## Phase 3 — UI tile assets + title art
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `e56ed26` on 2026-05-24. All 6 tasks complete: `tools/make_ui_tiles.py` generates `assets/ui_tiles.png` (128×16, 32 tiles) — cursor, 4 corners, 2 edges, light/sel fills, 4 tier patterns, solid dark; `tools/make_title.py` generates `assets/title.png` (160×144) but it's NOT compiled into the ROM (see Deviations). render.h adds UI tile constants + `render_set_tile()`; render.c loads UI tiles into VRAM at offset 64 on `render_init()`. mGBA visual confirmation received — all 13 UI tiles render correctly.
 
 **Goal**: Generate `assets/ui_tiles.png` (cursor sprite tiles, cell border tiles, 4 tier pattern tiles, solid label tile) and `assets/title.png` (title screen art). Wire png2asset into the Makefile for both. Load all tiles into VRAM at boot. End state: a smoke test in main.c temporarily renders one of each new tile to confirm they're loaded correctly.
 
