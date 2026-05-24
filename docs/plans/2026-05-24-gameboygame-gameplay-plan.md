@@ -77,12 +77,12 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 1/9 phases shipped, 0 deferred.
+**Overall:** 2/9 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Scene dispatch infrastructure | ✅ Shipped | `7e0f9b7` | 2026-05-24; 5-scene cycle works in mGBA |
-| 2 — TDD compute_play_layout() | ⬜ Not started | — | pure function, host-testable |
+| 2 — TDD compute_play_layout() | ✅ Shipped | `dc516c0` | 2026-05-24; 26 assertions across 7 tests, 3 red-green cycles |
 | 3 — UI tile assets + title art | ⬜ Not started | — | ui_tiles.png (cursor, borders, 4 tier patterns) + title.png |
 | 4 — SCENE_TITLE | ⬜ Not started | — | adaptive menu + NEW GAME confirm + save writes |
 | 5 — SCENE_PLAY rendering + cursor | ⬜ Not started | — | grid + cursor sprite + nav + SELECT_FLASH |
@@ -360,7 +360,7 @@ git commit -m "B1: scene dispatch infrastructure — scene table + VBlank ISR + 
 
 ## Phase 2 — TDD compute_play_layout() pure function
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `dc516c0` on 2026-05-24. All 9 tasks complete with strict TDD discipline — 3 separate red-green cycles for (a) 0-solved baseline, (b) bar placement, (c) cell positioning. Final state: 26 assertions across 7 test functions, all passing via `make test`. Architectural invariant verified — `layout.c` has only `#include "layout.h"` + `<string.h>`, no GBDK includes. layout.c is NOT yet in the ROM SRC list (joins in Phase 5 when scene_play uses it).
 
 **Goal**: Build the dynamic compacting layout calculator — a pure C function that takes `groups_solved` (bits 0..3) and returns where each of the 16 unsolved cells and 0..3 solved bars should appear on screen. Pure function = no GBDK includes = host-testable with vanilla gcc. End state: `make test` includes a new test binary that verifies layout for all 4 possible `groups_solved` counts (0, 1, 2, 3 — case 4 triggers PLAY→WIN before layout is recomputed).
 
