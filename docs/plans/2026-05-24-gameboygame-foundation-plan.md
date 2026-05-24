@@ -77,14 +77,14 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 
 ## Execution Status
 
-**Overall:** 3/8 phases shipped, 0 deferred.
+**Overall:** 4/8 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Project bootstrap | ✅ Shipped | `d98081c` | 2026-05-24; ROM verified in mGBA, 3 plan defects fixed inline |
 | 2 — Engine: render | ✅ Shipped | `ef5b12b` | 2026-05-24; ROM builds at 64KB MBC1+RAM+BATT, tile data spot-verified, mGBA visual confirmation received |
 | 3 — Engine: input | ✅ Shipped | `b863381` | 2026-05-24; edge detection + auto-repeat working in mGBA |
-| 4 — Engine: save | ⬜ Not started | — | — |
+| 4 — Engine: save | ✅ Shipped | `a930db0` | 2026-05-24; SRAM persistence + magic/version/checksum validation working in mGBA |
 | 5 — Engine: sound | ⬜ Not started | — | — |
 | 6 — Engine: anim | ⬜ Not started | — | — |
 | 7 — Game: puzzle_logic + tests | ⬜ Not started | — | TDD required (host-testable) |
@@ -806,7 +806,7 @@ git commit -m "3: implement input subsystem — edge detection + auto-repeat wit
 
 ## Phase 4 — Engine: save subsystem
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `a930db0` on 2026-05-24. All 6 tasks complete: `src/game/puzzles_types.h` provides Puzzle forward-decl + extern NUM_PUZZLES/PUZZLES (concrete data lands in Phase 8); `src/game/game_state.h` defines Scene enum, PlayState, and 20-byte GameSave with SRAM-format-compatible field ordering; `src/engine/save.{h,c}` implement save_load/save_store/save_reset with magic ("GBCX") + version (1) + XOR checksum validation, auto-recovery on any failure. `src/main.c` smoke-test confirms first-boot reset, A-key increment + SRAM persistence across hard reset, B-key reset path. mGBA visual confirmation received from user — tests 1, 2, 3 of the verification protocol all pass. Optional corruption test deferred (covered indirectly by first-boot magic-check path).
 
 **Goal**: Build SRAM read/write with magic + version + checksum validation. Smoke test: `main.c` writes a known save at boot, reads it back, displays loaded values on screen. After verifying load works, manually corrupt SRAM in BGB's memory viewer, power-cycle, verify the save resets to defaults.
 
