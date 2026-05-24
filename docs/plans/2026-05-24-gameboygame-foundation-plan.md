@@ -77,7 +77,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 
 ## Execution Status
 
-**Overall:** 7/8 phases shipped, 0 deferred. **Engine layer complete (5/5 subsystems); host-testable game logic landed.**
+**Overall:** 8/8 phases shipped, 0 deferred. **🎉 PLAN A COMPLETE.**
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -88,7 +88,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 | 5 — Engine: sound | ✅ Shipped | `a03a9c8` | 2026-05-24; all 9 SFX audibly distinct in mGBA (pitch calibration deferred to Plan C) |
 | 6 — Engine: anim | ✅ Shipped | `b0a28fe` | 2026-05-24; WRONG_SHAKE real, 6 others stub-for-Plan-B; mGBA visual confirmation received |
 | 7 — Game: puzzle_logic + tests | ✅ Shipped | `a32b5ce` | 2026-05-24; TDD red→green for all 4 functions, 21 assertions all pass, GBDK-free invariant verified |
-| 8 — Puzzle JSON pipeline | ⬜ Not started | — | TDD required (Python unittest) |
+| 8 — Puzzle JSON pipeline | ✅ Shipped | `2cca577` | 2026-05-24; TDD red→green for all 6 validation rules, 13 Python tests all pass, 5 sample puzzles baked into ROM, mGBA visual confirmation received |
 
 ### Deviations
 
@@ -2161,7 +2161,9 @@ git commit -m "7: implement puzzle_logic with TDD — is_group_correct, toggle_s
 
 ## Phase 8 — Puzzle JSON pipeline (TDD REQUIRED)
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `2cca577` on 2026-05-24. All 11 tasks complete with strict TDD discipline — each of the 6 validation rules went through a verified red phase before implementation (including a deliberate TDD-RED-PROBE on rule 1, where the rule-1 check in `validate_all` was temporarily disabled to confirm the test catches a regression, then restored). `tools/build_puzzles.py` validates input JSON, deterministically shuffles each puzzle (seed = `id * 31 + 7`), and emits `src/puzzles_data.c` matching the `Puzzle` struct from Phase 4. `tools/test_build_puzzles.py` has 13 assertions across `TestValidate` and `TestValidateAll`. `content/puzzles.json` ships 5 sample puzzles spanning difficulty. `make test` exits 0 (21 C assertions + 13 Python assertions). `make` produces a 64KB MBC1+RAM+BATT ROM with all 5 puzzles baked in. mGBA visual confirmation received from user — full JSON → Python codegen → C compilation → linker → ROM → runtime pipeline works end-to-end.
+
+Additional fix: added `.DEFAULT_GOAL := all` near the top of `Makefile` so `make` builds the ROM by default (the new codegen target would otherwise become Make's default goal, since it's defined before `all:`).
 
 **Goal**: Build the Python codegen pipeline — load `content/puzzles.json`, validate against the 6 rules from spec §6, deterministically shuffle each puzzle, emit `src/puzzles_data.c`. Plus an initial 5-puzzle sample bank baked into the ROM. End state: `make` runs codegen as part of build, produces a ROM with sample puzzles embedded.
 
