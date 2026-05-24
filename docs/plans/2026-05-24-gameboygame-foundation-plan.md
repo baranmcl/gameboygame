@@ -77,11 +77,11 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 
 ## Execution Status
 
-**Overall:** Not started.
+**Overall:** 1/8 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
-| 1 — Project bootstrap | ⬜ Not started | — | — |
+| 1 — Project bootstrap | ✅ Shipped | `d98081c` | 2026-05-24; ROM verified in mGBA, 3 plan defects fixed inline |
 | 2 — Engine: render | ⬜ Not started | — | render first so other modules have output for verification |
 | 3 — Engine: input | ⬜ Not started | — | — |
 | 4 — Engine: save | ⬜ Not started | — | — |
@@ -94,13 +94,16 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 *(none yet — record per the Living Document Contract as they occur)*
 
 ### Discoveries
-*(none yet — record per the Living Document Contract as they occur)*
+- **2026-05-24, Phase 1 start:** GBDK-2020 toolchain and GNU `make` were NOT installed on the user's machine. User installed: GBDK-2020 extracted to `C:\gbdk\` (with `C:\gbdk\bin\` containing `lcc.exe`, `png2asset.exe`, etc.); GNU Make 4.4.1 via MSYS2 to `C:\msys64\usr\bin\make.exe`; Python 3.12 already present.
+- **Plan defect (resolved inline via Discovery):** Task 1.1 Step 1 says "Expected output: a version line like `lcc <version-number>`". This is **wrong** — `lcc` does NOT accept a `--version` flag. Running `lcc --version` causes lcc to interpret `--version` as garbage args and produce error output ("Unknown option -r ignored", linker warnings). **Correct verification: run `lcc` with no arguments — it should print its usage banner `C:\gbdk\bin\lcc.exe [ option | file ]...`**. Same correction applies to `png2asset --version`: run `png2asset` with no args to see its usage banner.
+- **Plan defect (resolved inline via Discovery):** The user's system-PATH addition for `C:\gbdk\bin` did not propagate to fresh Git Bash sessions (Windows PATH-propagation quirk — sometimes requires full logout or restart). User worked around by adding `export PATH="$PATH:/c/gbdk/bin"` to `~/.bashrc`. **The agent's `Bash` tool is non-interactive and does NOT source `~/.bashrc`**, so all subsequent build commands run by the agent must prepend `export PATH="$PATH:/c/gbdk/bin:/c/msys64/usr/bin" && <command>` to see the toolchain. This is a per-call workaround until the user's system PATH fully propagates or a `~/.bash_env` (BASH_ENV) is set.
+- **Plan defect (resolved inline via fix):** Task 1.4 Makefile contained `-Wm-yc` with comment "GBC mode OFF (DMG-only target)". **This is the opposite of what the flag does.** In GBDK lcc, `-Wm-yc` sets the **CGB-compatible byte in the cartridge header**, marking the ROM as Game Boy Color compatible — exactly what we DON'T want for a DMG-only target. First build with this flag produced `Game Boy Color ROM image: "GBCX" ... [CGB]` per `file` output. After removing `-Wm-yc` from `LCC_FLAGS` and clean-rebuilding, `file` output correctly shows `Game Boy ROM image: "GBCX" ... [MBC1+RAM+BATT]` (no `[CGB]` flag). For DMG-only target, **omit `-Wm-yc` entirely**. Plan A Task 1.4 has been corrected inline.
 
 ---
 
 ## Phase 1 — Project bootstrap
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `d98081c` on 2026-05-24 (branch `main`). All 6 tasks complete: GBDK toolchain + make installed and verified; directory tree created; minimal `src/main.c` written; `Makefile` written + ROM builds clean (64KB MBC1+RAM+BATT, DMG-only); ROM loads in mGBA with title "GBCX"; commit landed. See Discoveries section for three plan defects fixed inline during execution: (1) `lcc --version` is not a valid flag; (2) Bash-tool needs PATH prepend per call; (3) `-Wm-yc` flag in original Makefile incorrectly enabled CGB-compat — removed for true DMG-only output.
 
 **Goal**: Produce a minimal `.gb` ROM that boots in BGB and prints "GBCX" on the screen. Establishes that the GBDK toolchain works end-to-end and the Makefile structure is sound.
 
@@ -201,9 +204,10 @@ LCC := lcc
 # -Wm-yt0x03 → MBC1+RAM+Battery cartridge type byte
 # -Wm-yo4   → 4 ROM banks (64KB total)
 # -Wm-ya1   → 1 RAM bank (8KB SRAM)
-# -Wm-yc    → GBC mode OFF (DMG-only target)
 # -Wm-yn"GBCX" → ROM name in cartridge header
-LCC_FLAGS := -Wm-yt0x03 -Wm-yo4 -Wm-ya1 -Wm-yc -Wm-yn"GBCX"
+# (Do NOT add -Wm-yc — that flag sets the CGB-compatible byte in the
+#  cartridge header. For DMG-only target, omit it entirely.)
+LCC_FLAGS := -Wm-yt0x03 -Wm-yo4 -Wm-ya1 -Wm-yn"GBCX"
 
 # Source files
 SRC := src/main.c
