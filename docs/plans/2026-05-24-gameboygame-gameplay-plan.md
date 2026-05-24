@@ -77,11 +77,11 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 0/9 phases shipped, 0 deferred.
+**Overall:** 1/9 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
-| 1 — Scene dispatch infrastructure | ⬜ Not started | — | thin main.c + scene table + VBlank ISR + stub scenes |
+| 1 — Scene dispatch infrastructure | ✅ Shipped | `7e0f9b7` | 2026-05-24; 5-scene cycle works in mGBA |
 | 2 — TDD compute_play_layout() | ⬜ Not started | — | pure function, host-testable |
 | 3 — UI tile assets + title art | ⬜ Not started | — | ui_tiles.png (cursor, borders, 4 tier patterns) + title.png |
 | 4 — SCENE_TITLE | ⬜ Not started | — | adaptive menu + NEW GAME confirm + save writes |
@@ -101,7 +101,7 @@ notes and commit messages.
 
 ## Phase 1 — Scene dispatch infrastructure
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `7e0f9b7` on 2026-05-24. All 6 tasks complete: `src/game/scene.h` defines the SceneVTable interface; 5 scene stubs each display their name + transition on START forming a TITLE→PLAY→WIN→LOSE→ALL_DONE→TITLE cycle; `src/main.c` rewritten as a clean dispatcher with VBlank ISR (anim_tick + sound_tick + render_flush). ROM still builds at 64KB MBC1+RAM+BATT. mGBA visual confirmation received from user — all 5 scenes cycle correctly via START. Minor deviation: SCENES[] is non-const (vs plan's const-with-cast pattern) since main.c populates imperatively at runtime; scene.h's extern declaration was updated to match.
 
 **Goal**: Replace Plan A's smoke-test `main.c` with a clean scene dispatcher driven by a function-pointer table. Add a VBlank ISR that runs `anim_tick`, `sound_tick`, and `render_flush` once per frame. Provide stub `init/update/render/teardown` functions for all 5 scenes that just display the scene name and switch on START. End state: in mGBA, the user can cycle through all 5 scenes by pressing START, confirming the dispatcher works before any scene has real logic.
 
