@@ -77,13 +77,13 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 
 ## Execution Status
 
-**Overall:** 2/8 phases shipped, 0 deferred.
+**Overall:** 3/8 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Project bootstrap | ✅ Shipped | `d98081c` | 2026-05-24; ROM verified in mGBA, 3 plan defects fixed inline |
 | 2 — Engine: render | ✅ Shipped | `ef5b12b` | 2026-05-24; ROM builds at 64KB MBC1+RAM+BATT, tile data spot-verified, mGBA visual confirmation received |
-| 3 — Engine: input | ⬜ Not started | — | — |
+| 3 — Engine: input | ✅ Shipped | `b863381` | 2026-05-24; edge detection + auto-repeat working in mGBA |
 | 4 — Engine: save | ⬜ Not started | — | — |
 | 5 — Engine: sound | ⬜ Not started | — | — |
 | 6 — Engine: anim | ⬜ Not started | — | — |
@@ -600,7 +600,7 @@ Flip Phase 2's banner from `⬜ NOT STARTED` to `✅ SHIPPED at <SHA> on <YYYY-M
 
 ## Phase 3 — Engine: input subsystem
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `b863381` on 2026-05-24. All 4 tasks complete: `src/engine/input.{h,c}` implement edge-triggered press/release detection, raw hold query, and per-button auto-repeat (15-frame initial delay then every 5 frames). `src/main.c` smoke-test shows live held-button display + edge-triggered "A PRESSED!" flash. ROM still builds at 64KB MBC1+RAM+BATT. mGBA visual confirmation received from user — all buttons (D-pad, A, B, START, SELECT) tracked correctly, edge trigger works as designed. Minor smoke-test tweak: press-flash duration bumped from 1 frame to 30 frames for visibility (does not affect subsystem behavior).
 
 **Goal**: Build the input subsystem — edge-triggered button detection with auto-repeat for D-pad. Smoke test: `main.c` shows current button state visually (e.g., "UP DOWN LEFT RIGHT A B START SELECT" toggling based on actual button presses).
 
