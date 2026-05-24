@@ -31,7 +31,7 @@ src/assets_gen/%.c: assets/%.png
 	png2asset $< -o $@ -spr8x8 -bpp 2 -keep_palette_order -sprite_no_optimize -tiles_only -noflip
 
 # Source files
-SRC := src/main.c src/engine/render.c src/engine/input.c
+SRC := src/main.c src/engine/render.c src/engine/input.c src/engine/save.c
 SRC += $(ASSETS_GEN)
 OBJ := $(patsubst src/%.c,build/%.o,$(SRC))
 
