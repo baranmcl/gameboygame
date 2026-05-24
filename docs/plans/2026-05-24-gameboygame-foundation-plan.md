@@ -82,7 +82,7 @@ Engine subsystems (`engine/input.c`, `engine/render.c`, `engine/save.c`, `engine
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Project bootstrap | ✅ Shipped | `d98081c` | 2026-05-24; ROM verified in mGBA, 3 plan defects fixed inline |
-| 2 — Engine: render | ✅ Shipped | `ef5b12b` | 2026-05-24; ROM builds at 64KB MBC1+RAM+BATT, tile data spot-verified; mGBA visual confirmation pending user |
+| 2 — Engine: render | ✅ Shipped | `ef5b12b` | 2026-05-24; ROM builds at 64KB MBC1+RAM+BATT, tile data spot-verified, mGBA visual confirmation received |
 | 3 — Engine: input | ⬜ Not started | — | — |
 | 4 — Engine: save | ⬜ Not started | — | — |
 | 5 — Engine: sound | ⬜ Not started | — | — |
@@ -344,7 +344,7 @@ Edit this file to flip Phase 1's banner from `⬜ NOT STARTED` to `✅ SHIPPED a
 
 ## Phase 2 — Engine: render subsystem
 
-**Execution Status:** ✅ SHIPPED at `ef5b12b` on 2026-05-24. All 6 tasks complete: `assets/font.png` generated programmatically via `tools/make_font.py` (see Deviations — Pillow not installed, no pixel-art tooling available); png2asset configured with corrected flags `-spr8x8 -sprite_no_optimize` (see Deviations — plan's flags produced wrong tile order + missing tile); `src/engine/render.{h,c}` implement tilemap buffer + VBlank flush + ASCII→tile mapping; `src/main.c` smoke-test scaffolding renders "RENDER OK" / "PLAN A PHASE 2"; ROM builds clean at 64KB MBC1+RAM+BATT (no [CGB] flag). Tile data verified by byte-level inspection of `font_tiles[]` (tile 1 = '!', tile 33 = 'A'). mGBA visual confirmation pending user.
+**Execution Status:** ✅ SHIPPED at `ef5b12b` on 2026-05-24. All 6 tasks complete: `assets/font.png` generated programmatically via `tools/make_font.py` (see Deviations — Pillow not installed, no pixel-art tooling available); png2asset configured with corrected flags `-spr8x8 -sprite_no_optimize` (see Deviations — plan's flags produced wrong tile order + missing tile); `src/engine/render.{h,c}` implement tilemap buffer + VBlank flush + ASCII→tile mapping; `src/main.c` smoke-test scaffolding renders "RENDER OK" / "PLAN A PHASE 2"; ROM builds clean at 64KB MBC1+RAM+BATT (no [CGB] flag). Tile data verified by byte-level inspection of `font_tiles[]` (tile 1 = '!', tile 33 = 'A'). mGBA visual confirmation received from user — both "RENDER OK" and "PLAN A PHASE 2" display correctly.
 
 **Goal**: Build the rendering subsystem (tilemap buffer in WRAM + VBlank-synced flush + text drawing helper + font tile loading). Render is implemented first so subsequent engine modules have output for their smoke tests. End state: `main.c` smoke-test scaffolding draws "RENDER OK" to the screen via `render_text()`.
 
