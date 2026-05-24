@@ -1,5 +1,10 @@
 # Game Boy Connections — Makefile (Plan A)
 
+# Default goal — explicit because Phase 8's codegen rule would otherwise
+# steal default-target status from `all:` (Make picks the first concrete
+# target it sees, and codegen rules are defined before the ROM target).
+.DEFAULT_GOAL := all
+
 # GBDK paths — `lcc` should be on PATH; adjust GBDK_HOME if needed
 LCC := lcc
 
@@ -30,21 +35,35 @@ src/assets_gen/%.c: assets/%.png
 	@mkdir -p $(dir $@)
 	png2asset $< -o $@ -spr8x8 -bpp 2 -keep_palette_order -sprite_no_optimize -tiles_only -noflip
 
+# Puzzle data codegen — runs whenever JSON or script changes
+PUZZLE_JSON := content/puzzles.json
+PUZZLE_OUT  := src/puzzles_data.c
+PUZZLE_SCRIPT := tools/build_puzzles.py
+
+$(PUZZLE_OUT): $(PUZZLE_JSON) $(PUZZLE_SCRIPT)
+	python $(PUZZLE_SCRIPT) $(PUZZLE_JSON) $(PUZZLE_OUT)
+
 # Source files
 SRC := src/main.c src/engine/render.c src/engine/input.c src/engine/save.c src/engine/sound.c src/engine/anim.c
 SRC += $(ASSETS_GEN)
+SRC += $(PUZZLE_OUT)
 OBJ := $(patsubst src/%.c,build/%.o,$(SRC))
 
 # Output ROM
 ROM := build/gameboygame.gb
 
-.PHONY: all clean run size test
+.PHONY: all clean run size test test-logic test-codegen
 
 all: $(ROM)
 
-# Host-side unit tests (puzzle_logic.c via MinGW64 gcc — NOT GBDK)
-test:
+# Host-side unit tests: C logic via gcc + Python codegen via unittest
+test: test-logic test-codegen
+
+test-logic:
 	$(MAKE) -C test
+
+test-codegen:
+	cd tools && python -m unittest test_build_puzzles.py
 
 # Build object file from C source
 build/%.o: src/%.c

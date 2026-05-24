@@ -5,6 +5,10 @@ build/
 test/test_puzzle_logic
 test/test_puzzle_logic.exe
 
+# Python bytecode
+__pycache__/
+*.pyc
+
 # Generated source files (Python codegen output, png2asset output)
 src/puzzles_data.c
 src/assets_gen/

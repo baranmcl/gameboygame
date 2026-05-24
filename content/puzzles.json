@@ -1,0 +1,49 @@
+{
+  "puzzles": [
+    {
+      "id": 1,
+      "categories": [
+        { "tier": "yellow", "name": "BIRDS",  "words": ["ROBIN", "EAGLE", "HAWK", "FINCH"] },
+        { "tier": "green",  "name": "COLORS", "words": ["RED", "BLUE", "GREEN", "BLACK"] },
+        { "tier": "blue",   "name": "ACTION", "words": ["RUN", "JUMP", "SWIM", "KICK"] },
+        { "tier": "purple", "name": "FOOD",   "words": ["BREAD", "RICE", "PASTA", "MEAT"] }
+      ]
+    },
+    {
+      "id": 2,
+      "categories": [
+        { "tier": "yellow", "name": "FRUITS",  "words": ["APPLE", "PEAR", "PEACH", "MANGO"] },
+        { "tier": "green",  "name": "PLANETS", "words": ["MARS", "EARTH", "VENUS", "PLUTO"] },
+        { "tier": "blue",   "name": "METALS",  "words": ["IRON", "GOLD", "TIN", "ZINC"] },
+        { "tier": "purple", "name": "DANCES",  "words": ["WALTZ", "TANGO", "SALSA", "POLKA"] }
+      ]
+    },
+    {
+      "id": 3,
+      "categories": [
+        { "tier": "yellow", "name": "TOOLS",   "words": ["HAMMER", "SAW", "DRILL", "WRENCH"] },
+        { "tier": "green",  "name": "WEATHER", "words": ["RAIN", "SNOW", "WIND", "HAIL"] },
+        { "tier": "blue",   "name": "OCEANS",  "words": ["PACIFIC", "ARCTIC", "INDIAN", "ATLANTIC"] },
+        { "tier": "purple", "name": "VERBS",   "words": ["WALK", "TALK", "SING", "DANCE"] }
+      ]
+    },
+    {
+      "id": 4,
+      "categories": [
+        { "tier": "yellow", "name": "BIG CATS",  "words": ["LION", "TIGER", "PUMA", "LYNX"] },
+        { "tier": "green",  "name": "ELEMENTS",  "words": ["HELIUM", "NEON", "ARGON", "RADON"] },
+        { "tier": "blue",   "name": "SPORTS",    "words": ["SOCCER", "GOLF", "TENNIS", "RUGBY"] },
+        { "tier": "purple", "name": "INSTRUM",   "words": ["PIANO", "VIOLIN", "DRUMS", "FLUTE"] }
+      ]
+    },
+    {
+      "id": 5,
+      "categories": [
+        { "tier": "yellow", "name": "MONTHS",   "words": ["MARCH", "APRIL", "JUNE", "JULY"] },
+        { "tier": "green",  "name": "GEMS",     "words": ["RUBY", "OPAL", "JADE", "ONYX"] },
+        { "tier": "blue",   "name": "RIVERS",   "words": ["NILE", "AMAZON", "DANUBE", "VOLGA"] },
+        { "tier": "purple", "name": "SHAPES",   "words": ["CIRCLE", "SQUARE", "OVAL", "STAR"] }
+      ]
+    }
+  ]
+}
