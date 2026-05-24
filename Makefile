@@ -38,9 +38,13 @@ OBJ := $(patsubst src/%.c,build/%.o,$(SRC))
 # Output ROM
 ROM := build/gameboygame.gb
 
-.PHONY: all clean run size
+.PHONY: all clean run size test
 
 all: $(ROM)
+
+# Host-side unit tests (puzzle_logic.c via MinGW64 gcc — NOT GBDK)
+test:
+	$(MAKE) -C test
 
 # Build object file from C source
 build/%.o: src/%.c

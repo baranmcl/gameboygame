@@ -1,6 +1,10 @@
 # Build artifacts (object files, intermediates, ROM output)
 build/
 
+# Host-side test binaries
+test/test_puzzle_logic
+test/test_puzzle_logic.exe
+
 # Generated source files (Python codegen output, png2asset output)
 src/puzzles_data.c
 src/assets_gen/
