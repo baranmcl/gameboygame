@@ -77,7 +77,7 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 8/9 phases shipped, 0 deferred.
+**Overall:** 9/9 phases shipped, 0 deferred. **🎉 PLAN B COMPLETE.**
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -89,7 +89,7 @@ notes and commit messages.
 | 6 — SCENE_PLAY submission + animations | ✅ Shipped | `50d44fb` | 2026-05-24; full gameplay loop working; cursor-nav post-solve bug fixed with slot-based coords |
 | 7 — SCENE_WIN | ✅ Shipped | `3eef2ea` | 2026-05-24; BAR_CASCADE + stats + transitions work; BGP_REG palette-leak bug fixed (defensive reset in scene_inits) |
 | 8 — SCENE_LOSE | ✅ Shipped | `44a5d5f` | 2026-05-24; LOSE_REVEAL + RETRY+SKIP menu; root cause of cascade-stall bug fixed (frame-based timing, applies to WIN too) |
-| 9 — SCENE_ALL_DONE + size check | ⬜ Not started | — | lifetime totals + cycle restart + final ROM size verification |
+| 9 — SCENE_ALL_DONE + size check | ✅ Shipped | `d0ce151` | 2026-05-24; full 5-puzzle playthrough confirmed by user; 64KB ROM, 60/60 tests pass |
 
 ### Deviations
 
@@ -2655,7 +2655,7 @@ git commit -m "B8: SCENE_LOSE — LOSE_REVEAL + retry/skip menu (skip gated on f
 
 ## Phase 9 — SCENE_ALL_DONE + final size verification
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `d0ce151` on 2026-05-24. SCENE_ALL_DONE displays lifetime totals (PUZZLES SOLVED / SKIPPED / BEST STREAK / AVG TRIES — integer-math one-decimal via x10 scaling) + START/A triggers cycle restart (current_puzzle_index = 0, fails = 0; lifetime stats preserved). Final ROM: 64KB MBC1+RAM+BATT (well under budget). Host tests: 60/60 pass (21 puzzle_logic + 26 layout + 13 codegen). mGBA full-playthrough confirmed by user — solved all 5 puzzles, ALL_DONE renders correctly, START → TITLE → CONTINUE → puzzle 1 cycle restart works per spec §4.
 
 **Goal**: Final scene shows lifetime totals when the player completes all NUM_PUZZLES puzzles. START → TITLE with cycle restart (`current_puzzle_index = 0`, but lifetime stats preserved). Then a final size + smoke check of the complete ROM. End state: Plan B shipped — a fully playable game from boot to all-done.
 
