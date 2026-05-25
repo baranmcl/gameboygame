@@ -9,6 +9,10 @@
 static uint8_t tilemap_buf[SCREEN_TILES_W * SCREEN_TILES_H];
 static uint8_t dirty = 0;
 
+bool is_gbc(void) {
+    return _cpu == CGB_TYPE;
+}
+
 void render_init(void) {
     set_bkg_data(0, font_TILE_COUNT, font_tiles);
     set_bkg_data(UI_TILE_BASE, ui_tiles_TILE_COUNT, ui_tiles_tiles);

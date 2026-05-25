@@ -2,6 +2,7 @@
 #define ENGINE_RENDER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define SCREEN_TILES_W 20
 #define SCREEN_TILES_H 18
@@ -34,6 +35,13 @@
 #define TITLE_TILE_BASE       160
 #define TITLE_BANNER_W        8
 #define TITLE_BANNER_H        4
+
+// Returns true if running on a Game Boy Color (or compatible), false on
+// original Game Boy (DMG) or Pocket (MGB). All color-code paths in this
+// engine check this and no-op on DMG.
+//
+// Uses GBDK's `_cpu` global: 0x11 = CGB, 0x01 = DMG, 0xFF = MGB.
+bool is_gbc(void);
 
 // Initialize render subsystem: load font + UI tiles into VRAM, clear tilemap buffer.
 // Must be called once at boot before any other render_* function.
