@@ -77,7 +77,7 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 7/9 phases shipped, 0 deferred.
+**Overall:** 8/9 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -88,7 +88,7 @@ notes and commit messages.
 | 5 — SCENE_PLAY rendering + cursor | ✅ Shipped | `73e7ee0` | 2026-05-24; PLAY fully working in mGBA; **4 bugs discovered + fixed** (cursor invisible, render flicker, ALL-DATA-LOST UX, SDCC %c sprintf skew) |
 | 6 — SCENE_PLAY submission + animations | ✅ Shipped | `50d44fb` | 2026-05-24; full gameplay loop working; cursor-nav post-solve bug fixed with slot-based coords |
 | 7 — SCENE_WIN | ✅ Shipped | `3eef2ea` | 2026-05-24; BAR_CASCADE + stats + transitions work; BGP_REG palette-leak bug fixed (defensive reset in scene_inits) |
-| 8 — SCENE_LOSE | ⬜ Not started | — | LOSE_REVEAL + retry/skip menu (skip gated on fails≥3) |
+| 8 — SCENE_LOSE | ✅ Shipped | `44a5d5f` | 2026-05-24; LOSE_REVEAL + RETRY+SKIP menu; root cause of cascade-stall bug fixed (frame-based timing, applies to WIN too) |
 | 9 — SCENE_ALL_DONE + size check | ⬜ Not started | — | lifetime totals + cycle restart + final ROM size verification |
 
 ### Deviations
@@ -118,6 +118,8 @@ notes and commit messages.
 - **Phase 6 (2026-05-24): Cursor nav uses VISUAL slot coords, not absolute cell_idx.** When groups solve, the cell grid repacks (16→12→8→4 cells). The absolute cell_idx (0..15) has row = idx/2, col = idx%2 — but those don't correspond to visual position in the repacked layout. Plan B's draft used absolute coords for d-pad nav, which made the cursor jump across columns when pressing DOWN after a solve. Fix: navigate by SLOT (which IS visual position in the layout), then map slot back to cell_idx via `slot_to_cell_idx()`. Slot = visual position; cell_idx = puzzle data index. They're equal pre-solve and divergent after solves. Future scene-grid implementations should default to slot-based nav and only convert to cell_idx when reading puzzle data or save state.
 
 - **Phase 7 (2026-05-24): Scene transitions can leak hardware register state from interrupted animations.** The anim engine has no scene-aware cleanup. When a scene fires `anim_start(X)` then immediately transitions, and the next scene's init fires `anim_start(Y)`, animation X never completes — including never running its register-restoration code on the "frame >= duration" cleanup path. Concretely: a 4th-correct submission fires CORRECT_FLASH, then transitions to WIN; the very next VBlank ticks CORRECT_FLASH once (writing `BGP_REG = 0x1B` for the inverted-flash phase) before WIN's anim_start overwrites the active anim. Inverted palette persists across WIN (visually masked by cascade) and into the next PLAY scene. **Defensive fix:** `BGP_REG = 0xE4` at the top of every scene_init. **Architectural lesson:** any hardware register an animation touches (BGP, SCX, NR-channel registers, etc.) should either be reset in scene_init OR the anim engine should expose an `anim_cancel()` that runs the active anim's cleanup before overwriting. The latter is cleaner but adds a per-anim "cleanup" callback. For Plan B the defensive scene_init reset is sufficient.
+
+- **Phase 8 (2026-05-24): Main-loop iteration counts diverge from VBlank rate when render passes go long.** Plan B's draft for WIN/LOSE cascade timing used a `cascade_frame++` counter in the scene's update function, advancing one bar every 20 increments. The assumption was that update runs at the 60Hz VBlank rate (one increment = one frame). This holds when nothing in main loop blocks for more than 16.67ms — but `redraw_needed` triggers an expensive `render_clear` + many `render_text` / `render_set_tile` / `sprintf` calls that CAN take longer. When main loop overruns a frame, the VBlank ISR still fires (so anim_tick + global_frame_count++ stay accurate), but the next main-loop iteration is delayed — under-counting on the scene's frame-counter logic. Symptom in Phase 8: LOSE_REVEAL stalled at 3 of 4 bars; debug counter showed 75 iterations instead of 80 expected. **Fix:** derive cascade/reveal step from `global_frame_count - reveal_start_frame` (delta in ISR-counted frames) instead of a main-loop-incremented counter. Applied to scene_lose AND scene_win (Phase 7 had the same shape but happened to work by luck). **Architectural rule:** any time-based main-loop logic must derive from global_frame_count deltas, never from iteration counts. Even seemingly-trivial sprintf calls eat enough frames to skew counters.
 
 ---
 
@@ -2477,7 +2479,7 @@ git commit -m "B7: SCENE_WIN — BAR_CASCADE + stats display + next-puzzle/title
 
 ## Phase 8 — SCENE_LOSE
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `44a5d5f` on 2026-05-24. SCENE_LOSE with LOSE_REVEAL animation (4 bars × 20 frames, visual driven by reveal_step), ATTEMPT counter, RETRY menu (always) + SKIP menu (gated on `current_puzzle_fails >= 3`), all transitions per spec §4. mGBA confirmation from user — 1st loss shows RETRY only, 3rd loss shows RETRY+SKIP, SKIP advances puzzle correctly. **One major bug surfaced + fixed:** main-loop throttling caused cascade animations to under-count iterations and stall before completion. Same bug affected Phase 7's WIN scene (just hidden by luck). Fix applied to both: derive cascade/reveal step from `global_frame_count` deltas (ISR-paced, accurate) instead of main-loop iteration counters.
 
 **Goal**: Real LOSE scene with reveal animation (LOSE_REVEAL, simpler than BAR_CASCADE) + correct grouping display + retry/skip menu (skip option only when `current_puzzle_fails >= 3`). A/START confirms menu selection. SELECT → TITLE.
 
