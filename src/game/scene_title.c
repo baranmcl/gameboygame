@@ -76,6 +76,12 @@ static void title_render(void) {
     }
     render_text(4, 6, "CONNECTIONS");
 
+    // Inconspicuous attribution at the bottom — rendered before the
+    // show_confirm return so it appears on both the main menu and the
+    // NEW GAME confirm overlay. 20 chars at col 0 = exact fit, no
+    // margin needed.
+    render_text(0, 17, "BY MCLEAN BARAN 2026");
+
     if (ts.show_confirm) {
         render_text(2, 8,  "NEW GAME?");
         render_text(2, 10, "ALL DATA LOST");
