@@ -44,6 +44,96 @@
         { "tier": "blue",   "name": "RIVERS",   "words": ["NILE", "AMAZON", "DANUBE", "VOLGA"] },
         { "tier": "purple", "name": "SHAPES",   "words": ["CIRCLE", "SQUARE", "OVAL", "STAR"] }
       ]
+    },
+    {
+      "id": 6,
+      "categories": [
+        { "tier": "yellow", "name": "HERBS",   "words": ["BASIL", "THYME", "SAGE", "MINT"] },
+        { "tier": "green",  "name": "CITRUS",  "words": ["LEMON", "LIME", "ORANGE", "YUZU"] },
+        { "tier": "blue",   "name": "CHEESES", "words": ["FETA", "BRIE", "EDAM", "GOUDA"] },
+        { "tier": "purple", "name": "SAUCES",  "words": ["GRAVY", "PESTO", "ALFREDO", "CHILI"] }
+      ]
+    },
+    {
+      "id": 7,
+      "categories": [
+        { "tier": "yellow", "name": "DOGS",     "words": ["POODLE", "BEAGLE", "BOXER", "HUSKY"] },
+        { "tier": "green",  "name": "REPTILES", "words": ["SNAKE", "LIZARD", "TURTLE", "GECKO"] },
+        { "tier": "blue",   "name": "INSECTS",  "words": ["ANT", "BEE", "WASP", "MOTH"] },
+        { "tier": "purple", "name": "RODENTS",  "words": ["RAT", "MOUSE", "BEAVER", "HAMSTER"] }
+      ]
+    },
+    {
+      "id": 8,
+      "categories": [
+        { "tier": "yellow", "name": "COUNTRIES", "words": ["FRANCE", "JAPAN", "BRAZIL", "EGYPT"] },
+        { "tier": "green",  "name": "DESERTS",   "words": ["SAHARA", "GOBI", "MOJAVE", "NAMIB"] },
+        { "tier": "blue",   "name": "LAKES",     "words": ["TAHOE", "ERIE", "CHAD", "BAIKAL"] },
+        { "tier": "purple", "name": "ISLANDS",   "words": ["CUBA", "MALTA", "HAWAII", "ICELAND"] }
+      ]
+    },
+    {
+      "id": 9,
+      "categories": [
+        { "tier": "yellow", "name": "BODY",   "words": ["ARM", "LEG", "HEAD", "FOOT"] },
+        { "tier": "green",  "name": "ORGANS", "words": ["HEART", "LIVER", "BRAIN", "KIDNEY"] },
+        { "tier": "blue",   "name": "BONES",  "words": ["RIB", "SKULL", "FEMUR", "SPINE"] },
+        { "tier": "purple", "name": "TEETH",  "words": ["MOLAR", "CANINE", "INCISOR", "WISDOM"] }
+      ]
+    },
+    {
+      "id": 10,
+      "categories": [
+        { "tier": "yellow", "name": "TOPS",    "words": ["SHIRT", "BLOUSE", "TEE", "TANK"] },
+        { "tier": "green",  "name": "BOTTOMS", "words": ["PANTS", "SHORTS", "JEANS", "SKIRT"] },
+        { "tier": "blue",   "name": "SHOES",   "words": ["BOOT", "SANDAL", "HEEL", "CLOG"] },
+        { "tier": "purple", "name": "HATS",    "words": ["CAP", "BERET", "FEDORA", "BOWLER"] }
+      ]
+    },
+    {
+      "id": 11,
+      "categories": [
+        { "tier": "yellow", "name": "CARS",     "words": ["SEDAN", "COUPE", "SUV", "WAGON"] },
+        { "tier": "green",  "name": "BOATS",    "words": ["YACHT", "CANOE", "KAYAK", "RAFT"] },
+        { "tier": "blue",   "name": "AIRCRAFT", "words": ["JET", "GLIDER", "BLIMP", "COPTER"] },
+        { "tier": "purple", "name": "TRAINS",   "words": ["STEAM", "DIESEL", "TROLLEY", "BULLET"] }
+      ]
+    },
+    {
+      "id": 12,
+      "categories": [
+        { "tier": "yellow", "name": "GENRES",  "words": ["ROCK", "JAZZ", "BLUES", "POP"] },
+        { "tier": "green",  "name": "BRASS",   "words": ["TRUMPET", "TUBA", "HORN", "BUGLE"] },
+        { "tier": "blue",   "name": "STRINGS", "words": ["VIOLIN", "CELLO", "HARP", "BANJO"] },
+        { "tier": "purple", "name": "VOICES",  "words": ["ALTO", "TENOR", "BASS", "SOPRANO"] }
+      ]
+    },
+    {
+      "id": 13,
+      "categories": [
+        { "tier": "yellow", "name": "GODS",     "words": ["ZEUS", "ODIN", "RA", "THOR"] },
+        { "tier": "green",  "name": "GIANTS",   "words": ["TITAN", "OGRE", "TROLL", "CYCLOPS"] },
+        { "tier": "blue",   "name": "MONSTERS", "words": ["HYDRA", "SPHINX", "MEDUSA", "KRAKEN"] },
+        { "tier": "purple", "name": "HEROES",   "words": ["ACHILLES", "HERCULES", "JASON", "ULYSSES"] }
+      ]
+    },
+    {
+      "id": 14,
+      "categories": [
+        { "tier": "yellow", "name": "POLYGONS", "words": ["TRIANGLE", "SQUARE", "PENTAGON", "HEXAGON"] },
+        { "tier": "green",  "name": "ANGLES",   "words": ["ACUTE", "RIGHT", "OBTUSE", "REFLEX"] },
+        { "tier": "blue",   "name": "UNITS",    "words": ["METER", "LITER", "GRAM", "OHM"] },
+        { "tier": "purple", "name": "PLANETS",  "words": ["MERCURY", "SATURN", "URANUS", "NEPTUNE"] }
+      ]
+    },
+    {
+      "id": 15,
+      "categories": [
+        { "tier": "yellow", "name": "DAYS",    "words": ["MONDAY", "FRIDAY", "SUNDAY", "TUESDAY"] },
+        { "tier": "green",  "name": "CLOCKS",  "words": ["ATOMIC", "SUNDIAL", "DIGITAL", "CUCKOO"] },
+        { "tier": "blue",   "name": "ERAS",    "words": ["BRONZE", "IRON", "STONE", "MEDIEVAL"] },
+        { "tier": "purple", "name": "QUICKLY", "words": ["FAST", "RAPID", "SWIFT", "BRISK"] }
+      ]
     }
   ]
 }
