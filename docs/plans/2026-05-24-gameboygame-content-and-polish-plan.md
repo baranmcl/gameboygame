@@ -84,14 +84,14 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 3/6 phases shipped, 0 deferred.
+**Overall:** 4/6 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Inverted font tiles | ✅ Shipped | `e23b462` | 2026-05-24; category names now readable on all 3 scenes' bars |
 | 2 — Title screen art | ✅ Shipped | `6bba585` | 2026-05-24; "GB" 4× banner via custom row-major tile generator; cartridge title also "GB" |
 | 3 — Per-puzzle stats on WIN | ✅ Shipped | `af6fb73` | 2026-05-24; TRIES/TIME/ATTEMPT via scene_handoff.h global |
-| 4 — SFX pitch calibration | ⬜ Not started | — | tune the 9 SFX from placeholder estimates to real notes |
+| 4 — SFX pitch calibration | ✅ Shipped | `041d14e` | 2026-05-24; all 9 SFX calibrated + volume hierarchy applied per user ear-test |
 | 5 — STATS_FADE animation | ⬜ Not started | — | replace Plan B stub with real 2-stage palette swap |
 | 6 — Content authoring + v1 tag | ⬜ Not started | — | user authors puzzles 6-30; final ROM size + v1.0 git tag |
 
@@ -829,7 +829,7 @@ git commit -m "C3: per-puzzle stats on WIN — tries used + time + attempt numbe
 
 ## Phase 4 — SFX pitch calibration
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `041d14e` on 2026-05-24. All 9 SFX calibrated from placeholder bytes to real notes (C-major arpeggio for correct/win, F→D for wrong, F→D→A for lose, G→E for skip). User ear-test in mGBA flagged cursor-move as abrasive; cascaded volume reductions across all SFX with hierarchy cursor(4) < action(6) < game-events(9). Reject noise also softened from 15-bit metallic static to 4-vol slower noise pattern. NOTE_XX_LO/HI #defines added for readability. **Deviation from plan:** the plan recommended ear-iteration after calibration; the user flagged volume issues before pitch issues, leading to a coordinated volume-softening pass that wasn't in the original task list.
 
 **Goal**: Replace the placeholder NR13/NR14 frequency bytes in `sound.c` with values that produce actual musical notes per spec §13. End state: each multi-note SFX (correct/wrong/win/lose/skip) plays recognizable note progressions instead of arbitrary pitches.
 
