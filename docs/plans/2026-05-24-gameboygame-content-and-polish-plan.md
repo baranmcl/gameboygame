@@ -84,11 +84,11 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 0/6 phases shipped, 0 deferred.
+**Overall:** 1/6 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
-| 1 — Inverted font tiles | ⬜ Not started | — | font_inv.png + render_text_inv(); enables category names on solved bars |
+| 1 — Inverted font tiles | ✅ Shipped | `e23b462` | 2026-05-24; category names now readable on all 3 scenes' bars |
 | 2 — Title screen art | ⬜ Not started | — | smaller title.png (logo only) + integration in scene_title |
 | 3 — Per-puzzle stats on WIN | ⬜ Not started | — | scene_handoff.h + PLAY→WIN data + display |
 | 4 — SFX pitch calibration | ⬜ Not started | — | tune the 9 SFX from placeholder estimates to real notes |
@@ -105,7 +105,7 @@ notes and commit messages.
 
 ## Phase 1 — Inverted font tiles
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `e23b462` on 2026-05-24. All 7 tasks complete: `tools/make_font.py` extended with `--inverted` flag; `assets/font_inv.png` generated and added to ASSETS_PNG; `FONT_INV_TILE_BASE = 96` constant + `render_text_inv()` API in render.h; render.c loads font_inv tiles + implements render_text_inv; PLAY/WIN/LOSE `render_bar` helpers updated to take Puzzle* and overlay category names. mGBA visual confirmation received from user — category names readable on all 3 scenes' bars.
 
 **Goal**: Generate a second font tile sheet with inverted palette (light glyphs on dark background) and add a `render_text_inv()` API. Use it to overlay category names on solved bars in PLAY/WIN/LOSE scenes. End state: solved bars show their category name in readable light-on-dark text.
 
