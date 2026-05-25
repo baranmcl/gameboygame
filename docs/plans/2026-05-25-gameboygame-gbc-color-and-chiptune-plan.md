@@ -63,7 +63,7 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 4/7 phases shipped (Phase 4 as scope cut). Phases 5-7 in progress.
+**Overall:** 7/7 phases shipped. 🎉 **Plan complete — v1.1 tagged and released.**
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -71,9 +71,9 @@ notes and commit messages.
 | 2 — GBC palette infrastructure | ✅ Shipped | `42f606d`, `ee1733e`, `c40428c` | 2026-05-25; 5 palettes (originally 6, then trimmed in Phase 4) + attribute API |
 | 3 — Apply tier colors to gameplay scenes | ✅ Shipped | `7f847f2`, `772b4e8`, `4314638` | 2026-05-25; all 3 scenes render tier colors on GBC, unchanged on DMG |
 | 4 — Title banner accent color | ✅ Shipped (scope cut) | `6df4f11` | 2026-05-25; user preferred unstylized title — reverted; tier colors stay as the visual signature |
-| 5 — Music player engine | ⬜ Not started | — | `src/engine/music.{h,c}` + host tests |
-| 6 — Title theme + integration | ⬜ Not started | — | 8-bar CH1 loop, scene_title wiring |
-| 7 — Final verification + v1.1 release | ⬜ Not started | — | DMG/GBC verify, README, tag, asset upload |
+| 5 — Music player engine | ✅ Shipped | `3e02204`, `499edcb` | 2026-05-25; music.{h,c} + 27 host assertions + VBlank wiring + Makefile toolchain fix |
+| 6 — Title theme + integration | ✅ Shipped | (theme + tune chain ending `a81fa31`) | 2026-05-25; 8-bar C major loop on CH1, user-tuned timbre (25% duty, vol 6) |
+| 7 — Final verification + v1.1 release | ✅ Shipped | `48fc537` (README) + tag commit | 2026-05-25; clean rebuild, all 74 host tests pass, user verified DMG + GBC playthroughs |
 
 ---
 
@@ -930,7 +930,12 @@ After Task 4.1:
 
 ## Phase 5 — Music player engine
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `499edcb` (final wiring) on 2026-05-25. Files: `src/engine/music.{h,c}` (new module), `src/main.c` (music_init + music_tick in VBlank ISR), `test/test_music.c` (27 host assertions), `test/Makefile` (toolchain fixes — see Discoveries below).
+
+**Discoveries during execution:**
+- **MSYS2 mingw64 gcc needs `/c/msys64/mingw64/bin` on PATH** (not just absolute gcc invocation). Without it gcc finds the MSYS2 `/usr/bin/as` (incompatible binutils) and silently exits 1 with no output. Test Makefile now exports PATH explicitly so the build is self-contained. The original v1.0 tests worked because the user's interactive shell had the right PATH already; CI / fresh-clone scenarios would have broken.
+- **The `<gb/cpu.h>` header doesn't exist in GBDK-2020** (plan referenced it for `_cpu`); `_cpu` is in `<gb/gb.h>` directly along with the named constant `CGB_TYPE = 0x11`. Used the named constant instead of the magic 0x11 in `is_gbc()`.
+- **Off-by-one in test 6** (loop test) assumed advance-on-decrement-to-zero, but the implementation advances on the NEXT tick after frames_remaining reaches 0. Kept the impl semantics (musically equivalent — `duration_frames=N` means N audible frames, advance on tick N+1) and fixed the test expectations to match.
 
 **Goal**: New `src/engine/music.{h,c}` module. Pattern-based player: define a `MusicTrack` as an array of `{note_index, duration_frames}`. `music_tick()` called per VBlank advances the playhead and writes NR13/NR14 when a new note starts. Includes host-side tests of the state machine.
 
@@ -1550,7 +1555,9 @@ If round 3 still finds issues, keep going until clean.
 
 ## Phase 6 — Title theme + integration
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at commit chain ending with `a81fa31` (note attack tuning) on 2026-05-25. Files: `src/game/title_theme.{h,c}` (new — 32-step C major loop), `src/game/scene_title.c` (music_play in init, music_stop in teardown), `Makefile` (added title_theme.c to SRC).
+
+**Deviation from plan (note timbre tuning):** Plan specified `NR12 = 0x83` (volume 8, decay step 3) and `NR11 = 0x80` (50% duty cycle). User feedback after first playthrough: "the attack on the notes should be softened, so the pulses aren't so in-your-face." Tuned to `NR11 = 0x40` (25% duty — rounder tone, less harmonic buzz) and `NR12 = 0x63` (volume 6 — softer). Music character became cozier without changing tempo or melody.
 
 **Goal**: Author an 8-bar upbeat title theme (CH1 only, ~5 second loop). Wire scene_title's init/teardown to play/stop the music. Verify in mGBA that the music plays on title, stops cleanly on transition to PLAY, and doesn't interfere with cursor/select SFX.
 
@@ -1768,7 +1775,7 @@ If round 3 still finds issues (e.g., music feels off-tempo, or loop point is awk
 
 ## Phase 7 — Final verification + v1.1 release
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED on 2026-05-25. Clean rebuild succeeded with all 74 host tests passing (21 puzzle_logic + 26 layout + 27 music). ROM identified by `file` as "Game Boy Color ROM image" (CGB flag 0x80, DMG-compatible). ROM size 65,536 bytes, 31.2% used (up from v1.0's 30.1% — music engine + theme data added ~700 bytes). User verified DMG + GBC playthroughs in mGBA. README updated. v1.1 tag created and pushed.
 
 **Goal**: Cross-check the full build on DMG and GBC modes. Update README to mention GBC color + chiptune. Tag v1.1. Upload the new ROM to the GitHub release.
 
