@@ -40,6 +40,11 @@ typedef struct {
     uint8_t  checksum;                 // [19]     XOR of bytes [0..18]
 } GameSave;
 
+// SRAM magic sentinel: just 4 arbitrary bytes that confirm SRAM was
+// initialized by THIS ROM (not garbage from a previous cartridge).
+// "GBCX" predates the user's Plan C "GBCX" → "GB" branding rename;
+// kept as-is to avoid invalidating existing saves. The cartridge header
+// title is set separately via the Makefile's `-Wm-yn"GB"` flag.
 #define SAVE_MAGIC_0 'G'
 #define SAVE_MAGIC_1 'B'
 #define SAVE_MAGIC_2 'C'

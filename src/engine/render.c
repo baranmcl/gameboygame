@@ -2,6 +2,7 @@
 #include "../assets_gen/font.h"
 #include "../assets_gen/ui_tiles.h"
 #include "../assets_gen/font_inv.h"
+#include "../assets_gen/title.h"
 #include <gb/gb.h>
 #include <string.h>
 
@@ -12,6 +13,7 @@ void render_init(void) {
     set_bkg_data(0, font_TILE_COUNT, font_tiles);
     set_bkg_data(UI_TILE_BASE, ui_tiles_TILE_COUNT, ui_tiles_tiles);
     set_bkg_data(FONT_INV_TILE_BASE, font_inv_TILE_COUNT, font_inv_tiles);
+    set_bkg_data(TITLE_TILE_BASE, title_TILE_COUNT, title_tiles);
     render_clear();
 }
 

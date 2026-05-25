@@ -13,7 +13,14 @@ __pycache__/
 
 # Generated source files (Python codegen output, png2asset output)
 src/puzzles_data.c
-src/assets_gen/
+src/assets_gen/*
+# Exception: title.c/title.h are checked into git because they're generated
+# by tools/make_title.py (which bypasses png2asset's mystery tile order
+# for 64×32 images — see Plan C Phase 2 Discovery). The `src/assets_gen/*`
+# pattern above ignores files within the dir rather than the dir itself,
+# so individual `!`-prefixed exceptions can re-include specific files.
+!src/assets_gen/title.c
+!src/assets_gen/title.h
 
 # Visual brainstorm artifacts (mockups, session state)
 .superpowers/

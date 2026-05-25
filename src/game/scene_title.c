@@ -58,8 +58,23 @@ static void title_render(void) {
     ts.redraw_needed = false;
 
     render_clear();
-    render_text(7, 2, "GBCX");
-    render_text(4, 4, "CONNECTIONS");
+    // Title banner: 8 tiles wide × 4 tall, centered horizontally on
+    // a 20-tile screen → starts at column (20-8)/2 = 6. Tiles in
+    // title.png are arranged row-major so banner tile (r, c) lives at
+    // TITLE_TILE_BASE + r * TITLE_BANNER_W + c.
+    {
+        uint8_t banner_x = (uint8_t)((SCREEN_TILES_W - TITLE_BANNER_W) / 2);
+        uint8_t banner_y = 1;  // rows 1-4 → leaves row 0 + row 5+ free
+        for (uint8_t r = 0; r < TITLE_BANNER_H; r++) {
+            for (uint8_t c = 0; c < TITLE_BANNER_W; c++) {
+                uint8_t tile_idx = (uint8_t)(r * TITLE_BANNER_W + c);
+                render_set_tile((uint8_t)(banner_x + c),
+                                (uint8_t)(banner_y + r),
+                                (uint8_t)(TITLE_TILE_BASE + tile_idx));
+            }
+        }
+    }
+    render_text(4, 6, "CONNECTIONS");
 
     if (ts.show_confirm) {
         render_text(2, 8,  "NEW GAME?");

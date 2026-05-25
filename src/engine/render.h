@@ -26,6 +26,14 @@
 #define UI_TILE_PATTERN_BASE  (UI_TILE_BASE + 9)   // +0..+3 = yellow, green, blue, purple
 #define UI_TILE_SOLID_DARK    (UI_TILE_BASE + 13)
 #define FONT_INV_TILE_BASE    96
+// Plan C addition: title banner (~32 tiles) loaded by render_init.
+// Tiles arranged 8 wide × 4 tall in title.png; tile index N maps to
+// banner cell (N % 8, N / 8) relative to the banner's top-left.
+// (User-driven retitle "GBCX" → "GB" mid-Plan C bumped letters from
+// 2× to 4× scale, hence the larger 8×4 tile layout.)
+#define TITLE_TILE_BASE       160
+#define TITLE_BANNER_W        8
+#define TITLE_BANNER_H        4
 
 // Initialize render subsystem: load font + UI tiles into VRAM, clear tilemap buffer.
 // Must be called once at boot before any other render_* function.
