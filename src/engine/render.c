@@ -17,7 +17,7 @@ static uint8_t attr_buf[SCREEN_TILES_W * SCREEN_TILES_H];
 
 static uint8_t dirty = 0;
 
-// GBC background palette data — 6 palettes × 4 colors × 2 bytes per color.
+// GBC background palette data — 5 palettes × 4 colors × 2 bytes per color.
 // Format is RGB555 little-endian (GBC native). Each palette's color 0 is
 // the "lightest" shade (mapped to font glyph color) and color 3 is the
 // "darkest" / most saturated (mapped to label backgrounds, solid fills).
@@ -25,7 +25,11 @@ static uint8_t dirty = 0;
 // Tier color choices: NYT Connections uses bright, saturated colors that
 // are clearly distinguishable. We pick close-to-canonical values that also
 // have enough luminance contrast to keep text readable when overlaid.
-static const uint16_t gbc_palette_data[6 * 4] = {
+//
+// Title banner intentionally stays on palette 0 (greyscale) per design
+// choice — the in-game tier colors are the visual signature; a
+// colorized title would compete with that. See plan Phase 4 deviation.
+static const uint16_t gbc_palette_data[5 * 4] = {
     // Palette 0: default greyscale — matches DMG appearance on GBC
     RGB(31, 31, 31), RGB(20, 20, 20), RGB(11, 11, 11), RGB( 0,  0,  0),
 
@@ -40,9 +44,6 @@ static const uint16_t gbc_palette_data[6 * 4] = {
 
     // Palette 4: purple tier — pale lavender → royal purple
     RGB(28, 24, 31), RGB(20, 12, 26), RGB(14,  4, 20), RGB( 8,  0, 12),
-
-    // Palette 5: title banner accent — bright red/orange ("GB" signature color)
-    RGB(31, 28, 22), RGB(31, 18,  8), RGB(28,  8,  4), RGB(18,  0,  0),
 };
 
 bool is_gbc(void) {
@@ -55,9 +56,9 @@ void render_init(void) {
     set_bkg_data(FONT_INV_TILE_BASE, font_inv_TILE_COUNT, font_inv_tiles);
     set_bkg_data(TITLE_TILE_BASE, title_TILE_COUNT, title_tiles);
 
-    // GBC: load all 6 background palettes. set_bkg_palette is a no-op on
+    // GBC: load all 5 background palettes. set_bkg_palette is a no-op on
     // DMG (checks _cpu internally), so this is safe to call unconditionally.
-    set_bkg_palette(0, 6, gbc_palette_data);
+    set_bkg_palette(0, 5, gbc_palette_data);
 
     render_clear();
 }

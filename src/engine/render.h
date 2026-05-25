@@ -40,16 +40,16 @@
 // to render_set_tile_palette(). On DMG these constants are ignored.
 //
 // Palette 0: default greyscale-equivalent (white/light/dark/black).
-//   Used for all text, UI chrome, and unspecified tiles.
+//   Used for all text, UI chrome, and unspecified tiles — including
+//   the title banner (we intentionally leave it greyscale on GBC too;
+//   the in-game tier colors are the visual signature).
 // Palettes 1-4: NYT tier colors (yellow / green / blue / purple).
 //   Used by render_solved_bar in scenes for the colored tier bands.
-// Palette 5: title banner accent (Phase 4).
 #define GBC_PAL_DEFAULT     0
 #define GBC_PAL_TIER_YELLOW 1
 #define GBC_PAL_TIER_GREEN  2
 #define GBC_PAL_TIER_BLUE   3
 #define GBC_PAL_TIER_PURPLE 4
-#define GBC_PAL_TITLE       5
 
 // Returns true if running on a Game Boy Color (or compatible), false on
 // original Game Boy (DMG) or Pocket (MGB). All color-code paths in this
