@@ -77,7 +77,7 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 6/9 phases shipped, 0 deferred.
+**Overall:** 7/9 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -87,7 +87,7 @@ notes and commit messages.
 | 4 — SCENE_TITLE | ✅ Shipped | `f6fe4cb` | 2026-05-24; first-boot menu + NEW GAME confirm flow verified in mGBA (in-progress 3-item menu deferred to Phase 5+ verification) |
 | 5 — SCENE_PLAY rendering + cursor | ✅ Shipped | `73e7ee0` | 2026-05-24; PLAY fully working in mGBA; **4 bugs discovered + fixed** (cursor invisible, render flicker, ALL-DATA-LOST UX, SDCC %c sprintf skew) |
 | 6 — SCENE_PLAY submission + animations | ✅ Shipped | `50d44fb` | 2026-05-24; full gameplay loop working; cursor-nav post-solve bug fixed with slot-based coords |
-| 7 — SCENE_WIN | ⬜ Not started | — | BAR_CASCADE + STATS_FADE + next-puzzle/title flow |
+| 7 — SCENE_WIN | ✅ Shipped | `3eef2ea` | 2026-05-24; BAR_CASCADE + stats + transitions work; BGP_REG palette-leak bug fixed (defensive reset in scene_inits) |
 | 8 — SCENE_LOSE | ⬜ Not started | — | LOSE_REVEAL + retry/skip menu (skip gated on fails≥3) |
 | 9 — SCENE_ALL_DONE + size check | ⬜ Not started | — | lifetime totals + cycle restart + final ROM size verification |
 
@@ -116,6 +116,8 @@ notes and commit messages.
 - **Phase 5 (2026-05-24): SDCC sprintf's `%c`-then-other-format-spec varargs alignment bug.** Triggered by Plan B Task 4.3's menu format `"%cCONTINUE P%d"`. SDCC promotes `char` to `int` (2 bytes) at the call site per C standard varargs rules, but SDCC's `printf` implementation reads `%c` via `va_arg(va, char)` (consumes only 1 byte). The 1-byte skew makes the following `%d` read from offset+1, producing value `0x0100 = 256` instead of `0x0001 = 1` (or `0x4300 = 17152` for a `'C'` followed by index 0, etc.). Visible symptom: "CONTINUE P256" on the menu despite the underlying save's `current_puzzle_index` being 0 (confirmed by separate `%d`-only debug print). **Workaround:** never combine `%c` with other format specs in one sprintf call. Either write the cursor character into `buf[0]` and sprintf into `buf+1`, or hand-write characters with no `%c`. The plan's example format strings need to be reworked for every scene's menu/header rendering — applied in scene_title.c Phase 5; scene_play.c's header uses only `%d` so it's safe.
 
 - **Phase 6 (2026-05-24): Cursor nav uses VISUAL slot coords, not absolute cell_idx.** When groups solve, the cell grid repacks (16→12→8→4 cells). The absolute cell_idx (0..15) has row = idx/2, col = idx%2 — but those don't correspond to visual position in the repacked layout. Plan B's draft used absolute coords for d-pad nav, which made the cursor jump across columns when pressing DOWN after a solve. Fix: navigate by SLOT (which IS visual position in the layout), then map slot back to cell_idx via `slot_to_cell_idx()`. Slot = visual position; cell_idx = puzzle data index. They're equal pre-solve and divergent after solves. Future scene-grid implementations should default to slot-based nav and only convert to cell_idx when reading puzzle data or save state.
+
+- **Phase 7 (2026-05-24): Scene transitions can leak hardware register state from interrupted animations.** The anim engine has no scene-aware cleanup. When a scene fires `anim_start(X)` then immediately transitions, and the next scene's init fires `anim_start(Y)`, animation X never completes — including never running its register-restoration code on the "frame >= duration" cleanup path. Concretely: a 4th-correct submission fires CORRECT_FLASH, then transitions to WIN; the very next VBlank ticks CORRECT_FLASH once (writing `BGP_REG = 0x1B` for the inverted-flash phase) before WIN's anim_start overwrites the active anim. Inverted palette persists across WIN (visually masked by cascade) and into the next PLAY scene. **Defensive fix:** `BGP_REG = 0xE4` at the top of every scene_init. **Architectural lesson:** any hardware register an animation touches (BGP, SCX, NR-channel registers, etc.) should either be reset in scene_init OR the anim engine should expose an `anim_cancel()` that runs the active anim's cleanup before overwriting. The latter is cleaner but adds a per-anim "cleanup" callback. For Plan B the defensive scene_init reset is sufficient.
 
 ---
 
@@ -2299,7 +2301,7 @@ git commit -m "B6: SCENE_PLAY submission + CELL_FLASH/CORRECT_FLASH + transition
 
 ## Phase 7 — SCENE_WIN
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `3eef2ea` on 2026-05-24. SCENE_WIN with BAR_CASCADE animation (4 bars × 20 frames; visual reveal driven by cascade_step counter, not anim engine), stats overlay (PUZZLE/STREAK/BEST), START → next puzzle or SCENE_ALL_DONE, SELECT → TITLE. mGBA visual confirmation from user. **One bug surfaced + fixed:** scene transitions could leave BGP_REG mid-CORRECT_FLASH (frame 0 wrote 0x1B before BAR_CASCADE overwrote the active anim, stranding the inverted palette into the next scene). Defensive `BGP_REG = 0xE4` added to play_init/title_init/win_init.
 
 **Goal**: Real WIN scene with BAR_CASCADE animation (4 tier bars fade in via palette ramp, 20 frames each) + stats overlay (tries used, time, attempt) + STATS_FADE animation. START advances to next puzzle (or ALL_DONE if this was the last). SELECT returns to TITLE.
 
