@@ -48,8 +48,8 @@ static void emit_note(uint8_t note) {
     }
     if (note >= MUSIC_NOTE_COUNT) return;  // defensive
     NR10_REG = 0x00;        // no frequency sweep
-    NR11_REG = 0x80;        // 50% duty cycle, length unused
-    NR12_REG = 0x83;        // volume 8, decay, envelope step 3
+    NR11_REG = 0x40;        // 25% duty cycle — rounder tone vs 50%'s buzz
+    NR12_REG = 0x63;        // volume 6 (down from 8), decay, envelope step 3
     NR13_REG = music_note_table[note].lo;
     NR14_REG = music_note_table[note].hi;
 #else
