@@ -70,7 +70,7 @@ notes and commit messages.
 | 1 — Cart header GBC-aware + runtime detection | ✅ Shipped | `b4a2150`, `2e3a70f` | 2026-05-25; -Wm-yc + is_gbc() helper |
 | 2 — GBC palette infrastructure | ✅ Shipped | `42f606d`, `ee1733e`, `c40428c` | 2026-05-25; 5 palettes (originally 6, then trimmed in Phase 4) + attribute API |
 | 3 — Apply tier colors to gameplay scenes | ✅ Shipped | `7f847f2`, `772b4e8`, `4314638` | 2026-05-25; all 3 scenes render tier colors on GBC, unchanged on DMG |
-| 4 — Title banner accent color | ✅ Shipped (scope cut) | _next commit_ | User preferred unstylized title — reverted; tier colors stay as the visual signature |
+| 4 — Title banner accent color | ✅ Shipped (scope cut) | `6df4f11` | 2026-05-25; user preferred unstylized title — reverted; tier colors stay as the visual signature |
 | 5 — Music player engine | ⬜ Not started | — | `src/engine/music.{h,c}` + host tests |
 | 6 — Title theme + integration | ⬜ Not started | — | 8-bar CH1 loop, scene_title wiring |
 | 7 — Final verification + v1.1 release | ⬜ Not started | — | DMG/GBC verify, README, tag, asset upload |
