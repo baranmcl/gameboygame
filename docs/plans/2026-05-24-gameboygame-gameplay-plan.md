@@ -77,7 +77,7 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 4/9 phases shipped, 0 deferred.
+**Overall:** 5/9 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -85,7 +85,7 @@ notes and commit messages.
 | 2 — TDD compute_play_layout() | ✅ Shipped | `dc516c0` | 2026-05-24; 26 assertions across 7 tests, 3 red-green cycles |
 | 3 — UI tile assets + title art | ✅ Shipped | `e56ed26` | 2026-05-24; 13 UI tiles render in mGBA; title.png generated but excluded from ROM build (31KB dead weight) |
 | 4 — SCENE_TITLE | ✅ Shipped | `f6fe4cb` | 2026-05-24; first-boot menu + NEW GAME confirm flow verified in mGBA (in-progress 3-item menu deferred to Phase 5+ verification) |
-| 5 — SCENE_PLAY rendering + cursor | ⬜ Not started | — | grid + cursor sprite + nav + SELECT_FLASH |
+| 5 — SCENE_PLAY rendering + cursor | ✅ Shipped | `73e7ee0` | 2026-05-24; PLAY fully working in mGBA; **4 bugs discovered + fixed** (cursor invisible, render flicker, ALL-DATA-LOST UX, SDCC %c sprintf skew) |
 | 6 — SCENE_PLAY submission + animations | ⬜ Not started | — | START/B logic + CELL_FLASH + CORRECT_FLASH + LAYOUT_REFLOW + transitions |
 | 7 — SCENE_WIN | ⬜ Not started | — | BAR_CASCADE + STATS_FADE + next-puzzle/title flow |
 | 8 — SCENE_LOSE | ⬜ Not started | — | LOSE_REVEAL + retry/skip menu (skip gated on fails≥3) |
@@ -106,6 +106,14 @@ notes and commit messages.
 - **Phase 3 (2026-05-24): png2asset emits `BANKREF(name)` macros that require GBDK-2020 metasprite headers.** The generated `ui_tiles.c` and `title.c` both `#include <gbdk/platform.h>` and `<gbdk/metasprites.h>` — same as Plan A's font.c. SDCC + lcc handle these fine, but it does mean every generated asset file pulls in metasprite infrastructure even when we only want raw tile data. Acceptable; not worth working around.
 
 - **Phase 3 (2026-05-24): Plan A's font lacks lowercase glyphs by design.** When scene_title's smoke test rendered "(row 5):", the word "row" rendered as 3 spaces because lowercase ASCII (0x61-0x7A) is outside the font's 0x20-0x5F range and `render_text` falls back to space for unprintables. Worth knowing when authoring later scene text — all user-visible strings must be uppercase.
+
+- **Phase 5 (2026-05-24): Sprite tile data requires separate `set_sprite_data` call.** Plan B Task 5.1's comment claimed `set_bkg_data` would suffice for sprite tile access since they share VRAM at `$8000-$8FFF` in GBDK's default unsigned background addressing mode. **This was wrong in practice** — GBDK still tracks separate "background tile bank" vs "sprite tile bank" through its API, and writes via `set_bkg_data` are not reflected in the sprite tile slot of the same index. Fix: call `set_sprite_data(tile_idx, count, source)` explicitly. Affects scene_play.c's cursor sprite. Symptom: cursor sprite invisible (rendered blank), user could only infer cursor position from selection highlights.
+
+- **Phase 5 (2026-05-24): VBlank ISR's render_flush races with main-loop render().** The main loop's per-frame `SCENES[current].render()` writes to the 360-byte tilemap WRAM buffer. When render() runs long (sprintf + 16 cells of tile writes ≈ 5-8ms), VBlank can fire mid-write; the ISR's `render_flush()` then pushes a half-updated buffer to VRAM. LCD scans the partial result for that frame, then the next frame catches up. Visible flicker + missing cells (bottom half of screen) as a result. Fix: per-scene `redraw_needed` flag — render() no-ops unless state changed. Each input handler / state mutation sets the flag.
+
+- **Phase 5 (2026-05-24): "ALL DATA LOST" prompt is meaningless on truly-fresh save.** Plan B Task 4.4's title_update unconditionally showed the NEW GAME confirm overlay. On a first-boot save (no progress at all — no in-progress, zero solves, zero skips, index 0), there is no data to lose. The prompt is just friction. Fix: 3-state menu detection (in-progress / has-any-progress / fresh) in TitleState; on the truly-fresh case, NEW GAME goes directly to PLAY without confirm.
+
+- **Phase 5 (2026-05-24): SDCC sprintf's `%c`-then-other-format-spec varargs alignment bug.** Triggered by Plan B Task 4.3's menu format `"%cCONTINUE P%d"`. SDCC promotes `char` to `int` (2 bytes) at the call site per C standard varargs rules, but SDCC's `printf` implementation reads `%c` via `va_arg(va, char)` (consumes only 1 byte). The 1-byte skew makes the following `%d` read from offset+1, producing value `0x0100 = 256` instead of `0x0001 = 1` (or `0x4300 = 17152` for a `'C'` followed by index 0, etc.). Visible symptom: "CONTINUE P256" on the menu despite the underlying save's `current_puzzle_index` being 0 (confirmed by separate `%d`-only debug print). **Workaround:** never combine `%c` with other format specs in one sprintf call. Either write the cursor character into `buf[0]` and sprintf into `buf+1`, or hand-write characters with no `%c`. The plan's example format strings need to be reworked for every scene's menu/header rendering — applied in scene_title.c Phase 5; scene_play.c's header uses only `%d` so it's safe.
 
 ---
 
@@ -1539,7 +1547,7 @@ git commit -m "B4: SCENE_TITLE — adaptive menu + NEW GAME confirm + 3 save-wri
 
 ## Phase 5 — SCENE_PLAY rendering + cursor + SELECT_FLASH
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `73e7ee0` on 2026-05-24. PlayState init/restore, layout-driven 16-cell grid rendering, cursor sprite with navigation + auto-repeat + blink, A toggle selection (max 4 with sfx_reject), B clear-all, SELECT quit-confirm with in-progress save, real SELECT_FLASH animation (whole-screen palette inversion). main.c adds `global_frame_count`. layout.c first joins ROM build. mGBA visual confirmation from user — all PLAY interactions work. **4 bugs discovered + fixed during verification** — see Discoveries 4-7 for full root-cause analysis. Note: Phase 5 took ~5 verify-fix cycles to land, mostly because Plan B's docs assumed pieces that needed first-time verification.
 
 **Goal**: Build the PLAY scene's static rendering — header (puzzle # / tries), 2×8 cell grid using Phase 3's UI tiles, cursor sprite navigation via D-pad with Plan A's auto-repeat, selection toggle on A, B clears selections. Includes the SELECT_FLASH animation (real implementation replacing the Phase 6 Plan A stub). NO submission logic yet (that's Phase 6). End state: a fully-rendered playable-looking PLAY scene where the user can move the cursor and select up to 4 cells with visual feedback, but pressing START does nothing yet.
 
