@@ -84,7 +84,7 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 4/6 phases shipped, 0 deferred.
+**Overall:** 5/6 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -92,15 +92,19 @@ notes and commit messages.
 | 2 — Title screen art | ✅ Shipped | `6bba585` | 2026-05-24; "GB" 4× banner via custom row-major tile generator; cartridge title also "GB" |
 | 3 — Per-puzzle stats on WIN | ✅ Shipped | `af6fb73` | 2026-05-24; TRIES/TIME/ATTEMPT via scene_handoff.h global |
 | 4 — SFX pitch calibration | ✅ Shipped | `041d14e` | 2026-05-24; all 9 SFX calibrated + volume hierarchy applied per user ear-test |
-| 5 — STATS_FADE animation | ⬜ Not started | — | replace Plan B stub with real 2-stage palette swap |
-| 6 — Content authoring + v1 tag | ⬜ Not started | — | user authors puzzles 6-30; final ROM size + v1.0 git tag |
+| 5 — STATS reveal + flicker eradication | ✅ Shipped | _next commit_ | 2026-05-24; pivoted from palette swap to incremental typewriter; also fixed scene_play A/B/wrong-submit flickers + dropped redundant SELECT_FLASH |
+| 6 — Content authoring + v1 tag | 🚧 In progress | — | user authors puzzles 6-30; final ROM size + v1.0 git tag |
 
 ### Deviations
 
 - **Phase 2 (2026-05-24): "GBCX" → "GB" branding rename mid-phase.** User decided the abbreviated "GB" was cleaner than "GBCX". Banner letters scaled from 2× (16×16 px each = 16 tiles total) to 4× (32×32 px each = 32 tiles total) to fill comparable screen space with fewer letters. Cartridge header title also renamed via `-Wm-yn"GB"`. SRAM magic sentinel kept as "GBCX" — purely an SRAM-validity check, not user-visible.
+- **Phase 5 (2026-05-24): palette-swap STATS_FADE → typewriter reveal.** BGP is global; the planned palette swap dimmed already-visible chrome (SOLVED! header, bar labels) along with the stats text. Pivoted to per-line typewriter reveal driven from scene_win, with the anim engine still timing the duration. See Phase 5 banner for full rationale.
+- **Phase 5 (2026-05-24): scope expanded to include scene_play flicker eradication.** User-surfaced flickers on A-press and B-clear shared the same root cause as the WIN-scene flicker. Rather than ship Phase 5 with the known bugs still in scene_play, fixed them in the same phase: incremental rendering pattern applied to A-toggle, B-clear, wrong-submit header update; redundant `ANIM_SELECT_FLASH` call site removed. See Phase 5 banner for full rationale.
 
 ### Discoveries
 
+- **Phase 5 (2026-05-24): the "redraw_needed → render_clear → full re-render" pattern races VBlank and is the universal flicker anti-pattern in this codebase.** `render_clear` zeros all 360 tilemap bytes and sets the dirty flag; the VBlank ISR (`render_flush`) blindly pushes the buffer to VRAM whenever it next fires, which can be mid-update. Hot-path interactions (input → state change → redraw_needed) must write deltas directly via `render_set_tile` / `render_text` to keep the buffer in a consistent valid state at every moment. `render_clear` belongs only in scene `init` and on rare structural transitions (layout shrinks, dialog open/close). Fixed in scene_win (typewriter) and scene_play (A/B/wrong-submit) in Phase 5; pattern documented as the convention for all future scene work.
+- **Phase 5 (2026-05-24): "audit the band-aids" when you fix an underlying problem.** `ANIM_SELECT_FLASH` was added in Plan B as visual punctuation for A-press feedback — but the real reason it existed was the redraw-race rendered the cell-color change invisible for 1-2 frames, so users needed a global palette flash to confirm their input registered. Once the race was eliminated and the cell color change became instantaneous, the palette flash was visible-noise the user immediately flagged as flicker. The fix was to remove the call site, not to tune the flash duration. (Other animations — CORRECT_FLASH, CELL_FLASH, WRONG_SHAKE — still earn their keep because they convey state the tile change doesn't directly indicate.)
 - **Phase 2 (2026-05-24): png2asset tile-emission order is NOT row-major for 64×32 images.** Plan A's font tile sheet is 128×32 and png2asset emits its tiles in row-major order with the `-spr8x8 -sprite_no_optimize -tiles_only` flags — verified by working ASCII→tile-index mapping. The same flags applied to a 64×32 title image produced visibly broken tile output: each individual 8×8 tile's byte content was correct (representing the right 8×8 region of the source image), but the index→position mapping was scrambled. Could not quickly reverse-engineer png2asset's sprite-iteration logic for this image shape. **Workaround:** `tools/make_title.py` now writes `src/assets_gen/title.{c,h}` directly via a custom ~40-line Python writer that emits row-major explicitly (tile N at image position `(col=N%tiles_wide, row=N//tiles_wide)`, each tile = 8 rows × 2 bytes GB planar 2bpp format, MSB = leftmost pixel). The PNG output is kept for visual debugging and Plan D content swaps; the .c/.h are the authoritative source. Gitignore updated with `src/assets_gen/*` glob + `!src/assets_gen/title.{c,h}` exceptions to track them in git.
 
 ---
@@ -1131,7 +1135,31 @@ git commit -m "C4: SFX pitch calibration — real C-major arpeggio for correct, 
 
 ## Phase 5 — STATS_FADE animation
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED on 2026-05-24 — scope expanded beyond plan.
+
+**Deviation from plan (visual approach):** Plan specified a 2-stage BGP palette-swap fade for stats. Built it, but BGP is a *global* register — the fade also dimmed the already-visible "SOLVED!" header and the bar category names, which felt broken rather than polished. Pivoted to a **per-line typewriter reveal**: stats lines appear one at a time over 30 frames (5 frames per line, 6 lines total) via the existing `redraw_needed` mechanism keyed off a `stats_step` counter computed from `global_frame_count`. The animation engine still drives the timing (`ANIM_STATS_FADE` keeps its frame counter via `tick_generic_stub`); only the visual implementation moved into the scene. Visual stays bounded to the stats region, no cross-contamination of the already-rendered chrome.
+
+**Deviation from plan (flicker fix in scene_win):** Initial typewriter implementation re-rendered the full WIN scene on every step (`render_clear` + full re-render of header + bars + stats). The 6 rapid `render_clear`s overshot the VBlank window — `render_flush` could sample the partially-cleared tilemap mid-update, producing visible flicker. Refactored `win_render` to be purely additive: `render_clear` + "SOLVED!" header moved to `win_init` (one-shot); render hot path tracks `last_rendered_cascade_step` and `last_rendered_stats_step` and only paints NEW content per step. Buffer stays in a consistent valid-screen state at every moment, so VBlank can sample it whenever it wants.
+
+**Deviation from plan (additional flicker fix in scene_play):** While verifying Phase 5, user surfaced two pre-existing flickers in the PLAY scene that had the same root cause as the WIN-scene fix:
+
+1. **A-press (cell selection) flickered the whole screen** because `redraw_needed = true` → `render_clear` + full re-render of header + bars + 16 cells. Fix: rewrote A-press to call `render_cell` directly for just the toggled cell. Same fix applied to B-clear-selections (only repaint previously-selected cells) and wrong-submit (only repaint header line — `tries` count is the only thing that changed). Full-redraw path preserved for layout changes (correct submit → fewer cells) and dialog open/close where it's load-bearing. Extracted `render_header()` and `render_board()` helpers so the full and incremental paths stay DRY.
+
+2. **`ANIM_SELECT_FLASH` (whole-screen BGP inversion for 4 frames on every A-press)** was a Plan B band-aid for the redraw race — it gave "your A-press registered" feedback at a time when the cell color change was sometimes invisible for 1-2 frames during the redraw. Now that the cell paints directly with no clear, the cell-fill swap from `UI_TILE_FILL_LIGHT` to `UI_TILE_FILL_SEL` is the feedback; the global palette flash was redundant noise piled on top. Removed the call site in scene_play (left the enum + tick handler in place — only ~12 bytes ROM, might be reused for menu-pulse on title).
+
+**Discoveries:**
+
+- **The "redraw_needed → render_clear → full re-render" pattern is the universal flicker anti-pattern in this codebase.** `render_clear` zeros 360 tilemap bytes and sets `dirty=1`. The VBlank ISR (`render_flush`) blindly pushes the dirty buffer to VRAM the next time it fires, which can be mid-update. Any scene that uses this pattern for hot-path interactions (input → redraw_needed → render_clear) will flicker.
+- **Rule going forward**: `render_clear` belongs in scene `init` and on rare structural transitions (e.g., layout shrinks, dialog open/close). All other state changes should write deltas directly via `render_set_tile` / `render_text` — the buffer stays in a valid state at every moment, VBlank can sample it any time without artifacts.
+- **Pattern**: when you fix the underlying problem, audit the band-aids. `SELECT_FLASH` was a workaround for the very race we just eliminated; once gone, the band-aid became visible noise. CORRECT_FLASH and CELL_FLASH still earn their keep (they convey state — group correct/wrong — that the tile change doesn't directly indicate).
+- **SDCC warning "EVELYN the modified DOG"**: harmless optimizer note about loop reordering when conditional comparisons involve unsigned arithmetic. Appears in scenes/anim throughout. Not a real issue.
+
+**Ship SHA:** _TBD — committed in next step._
+
+---
+
+**Plan-as-written tasks below.** Plan recorded the palette-swap approach; final code differs per the deviation note above. Tasks kept for archaeology — they describe a real (but rejected) approach to the same problem.
+
 
 **Goal**: Replace the `ANIM_STATS_FADE` stub in `engine/anim.c` with a real 2-stage palette swap. End state: after WIN's BAR_CASCADE completes, the stats text fades in via two palette stages (invisible → mid-shade → full-shade) instead of appearing instantly.
 

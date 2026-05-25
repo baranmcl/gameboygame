@@ -169,33 +169,53 @@ static void play_init(void) {
     update_cursor_sprite();
 }
 
-static void play_render(void) {
-    if (!redraw_needed) return;
-    redraw_needed = false;
-
-    render_clear();
-
-    const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
-
-    // Header
+// Paint the header row. Header is fixed-width ("P<n>  TRIES:<m>"), so
+// overwriting always replaces every char that could change.
+static void render_header(void) {
     char hdr[21];
     sprintf(hdr, "P%d  TRIES:%d",
             (int)pg_save.current_puzzle_index + 1,
             (int)ps.tries_remaining);
     render_text(0, 0, hdr);
+}
 
-    // Solved bars at the top (one per solved tier, top-to-bottom)
+// Paint the full board (header + bars + cells). Caller is responsible
+// for ensuring the underlying tilemap is clear or in a known state —
+// this writes EVERY tile of the active board region, so it's safe to
+// overlay onto a previous full board (idempotent), but not safe to
+// rely on for restoring after a partial overwrite of empty area.
+static void render_board(const Puzzle *puzzle) {
+    render_header();
     for (uint8_t i = 0; i < pg_layout.bars_count; i++) {
-        // Bar y in pg_layout is 0-indexed from screen top; shift by +1
-        // to leave the header row visible.
         render_solved_bar(puzzle, pg_layout.bar_tier[i], (uint8_t)(pg_layout.bar_y[i] + 1));
     }
-
-    // Draw all unsolved cells
     for (uint8_t i = 0; i < 16; i++) {
         if (cell_idx_is_solved(puzzle, i)) continue;
         render_cell(puzzle, i);
     }
+}
+
+static void play_render(void) {
+    if (!redraw_needed) return;
+    redraw_needed = false;
+
+    // Full-redraw path. Used for init, layout change after correct
+    // submit, and quit-confirm dialog open/close — i.e., cases where
+    // the whole tilemap state can shift. We still render_clear here
+    // because correct-submit shrinks the layout (cells disappear from
+    // bottom rows) and quit-dialog dismissal needs to wipe the dialog
+    // box. Single-frame flicker on these transitions is acceptable —
+    // they coincide with intentional animations (CORRECT_FLASH) or
+    // explicit user UI changes (dialog).
+    //
+    // Hot-path interactions (A-toggle, B-clear, wrong-submit) bypass
+    // this whole function — they call render_cell / render_header
+    // directly to avoid the render_clear → partial-flush race that
+    // produced visible flicker on every selection toggle.
+    render_clear();
+
+    const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
+    render_board(puzzle);
 
     if (ps.show_quit_confirm) {
         for (uint8_t y = 6; y < 12; y++) {
@@ -294,24 +314,36 @@ static void play_update(Scene *next_scene) {
         }
     }
 
-    // Selection toggle on A
+    // Selection toggle on A — repaint ONLY the toggled cell.
+    // Don't set redraw_needed: that path does render_clear which races
+    // VBlank and produces visible flicker on every A-press. render_cell
+    // overwrites just this cell's ~27 tiles, keeping the rest of the
+    // tilemap consistent at every moment.
+    //
+    // Originally we also fired ANIM_SELECT_FLASH here for "visual
+    // punctuation", but that inverts the entire BGP palette for 4
+    // frames — a whole-screen flash on every selection. Now that the
+    // cell fill swaps directly to UI_TILE_FILL_SEL, the cell-color
+    // change IS the feedback. The palette flash was redundant noise.
     if (input_pressed(BTN_A)) {
         if (toggle_selection(&ps, ps.cursor_idx)) {
             bool is_now_set = (ps.selected_mask & (1u << ps.cursor_idx)) != 0;
-            uint8_t data[8] = { ps.cursor_idx };
-            anim_start(ANIM_SELECT_FLASH, data, 4);
-            redraw_needed = true;
+            render_cell(puzzle, ps.cursor_idx);
             if (is_now_set) sfx_select(); else sfx_deselect();
         } else {
             sfx_reject();
         }
     }
 
-    // B clears all selections
+    // B clears all selections — repaint only the cells that were
+    // selected (same anti-flicker rationale as A-press above).
     if (input_pressed(BTN_B)) {
         if (ps.selected_mask != 0) {
+            uint16_t prev_mask = ps.selected_mask;
             ps.selected_mask = 0;
-            redraw_needed = true;
+            for (uint8_t i = 0; i < 16; i++) {
+                if (prev_mask & (1u << i)) render_cell(puzzle, i);
+            }
             sfx_deselect();
         }
     }
@@ -391,7 +423,11 @@ static void play_update(Scene *next_scene) {
             };
             anim_start(ANIM_CELL_FLASH, data, 12);
             sfx_wrong();
-            redraw_needed = true;  // header needs to redraw TRIES value
+            // Only the TRIES count in the header changes — repaint
+            // just the header line (incremental, same anti-flicker
+            // pattern as A/B). Cells remain selected for the CELL_FLASH
+            // visual so they don't need repainting.
+            render_header();
 
             save_in_progress();
 
