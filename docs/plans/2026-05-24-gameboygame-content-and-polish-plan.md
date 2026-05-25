@@ -84,7 +84,7 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 5/6 phases shipped, 0 deferred.
+**Overall:** 6/6 phases shipped. 🎉 **Plan C complete — v1.0 tagged.**
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -93,13 +93,14 @@ notes and commit messages.
 | 3 — Per-puzzle stats on WIN | ✅ Shipped | `af6fb73` | 2026-05-24; TRIES/TIME/ATTEMPT via scene_handoff.h global |
 | 4 — SFX pitch calibration | ✅ Shipped | `041d14e` | 2026-05-24; all 9 SFX calibrated + volume hierarchy applied per user ear-test |
 | 5 — STATS reveal + flicker eradication | ✅ Shipped | `9cd865b` | 2026-05-24; pivoted from palette swap to incremental typewriter; also fixed scene_play A/B/wrong-submit flickers + dropped redundant SELECT_FLASH |
-| 6 — Content authoring + v1 tag | 🚧 In progress | — | user authors puzzles 6-30; final ROM size + v1.0 git tag |
+| 6 — Content authoring + v1 tag | ✅ Shipped | `5f114ae`, `e857468`, `605acae` | 2026-05-24; agent authored all 25 new puzzles per user scope decision; 30-puzzle bank complete; ROM 64KB; v1.0 tagged |
 
 ### Deviations
 
 - **Phase 2 (2026-05-24): "GBCX" → "GB" branding rename mid-phase.** User decided the abbreviated "GB" was cleaner than "GBCX". Banner letters scaled from 2× (16×16 px each = 16 tiles total) to 4× (32×32 px each = 32 tiles total) to fill comparable screen space with fewer letters. Cartridge header title also renamed via `-Wm-yn"GB"`. SRAM magic sentinel kept as "GBCX" — purely an SRAM-validity check, not user-visible.
 - **Phase 5 (2026-05-24): palette-swap STATS_FADE → typewriter reveal.** BGP is global; the planned palette swap dimmed already-visible chrome (SOLVED! header, bar labels) along with the stats text. Pivoted to per-line typewriter reveal driven from scene_win, with the anim engine still timing the duration. See Phase 5 banner for full rationale.
 - **Phase 5 (2026-05-24): scope expanded to include scene_play flicker eradication.** User-surfaced flickers on A-press and B-clear shared the same root cause as the WIN-scene flicker. Rather than ship Phase 5 with the known bugs still in scene_play, fixed them in the same phase: incremental rendering pattern applied to A-toggle, B-clear, wrong-submit header update; redundant `ANIM_SELECT_FLASH` call site removed. See Phase 5 banner for full rationale.
+- **Phase 6 (2026-05-24): authoring direction inverted from plan text.** Plan said "User authors puzzles 6-30"; user's actual scope decision was "You author them, I just verify." Agent authored all 25 new puzzles in three commits (6-15, 16-25, 26-30) matching the simple-classification style of the original 5.
 
 ### Discoveries
 
@@ -1292,7 +1293,15 @@ git commit -m "C5: STATS_FADE animation — 2-stage palette fade-in for WIN scen
 
 ## Phase 6 — Content authoring + v1 tag
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED on 2026-05-24 at `605acae` (final puzzle batch). 30 puzzles authored over three batches (`5f114ae` 6-15, `e857468` 16-25, `605acae` 26-30). Clean rebuild produces 64KB MBC1+RAM+BATT ROM titled "GB". All 60 tests pass. v1.0 tag created.
+
+**Deviation from plan (authoring direction):** Plan text said "User authors puzzles 6-30" but the user's actual scope decision was "You author them, I just verify." Agent authored all 25 new puzzles (in three batches: 6-15, 16-25, 26-30) matching the simple-classification style of the original 5 (no wordplay, no cross-category overlaps). User verifies each by playing the ROM.
+
+**Discoveries:**
+
+- **`NUM_PUZZLES` auto-derived from JSON length** by `tools/build_puzzles.py:114`. Scenes reference it as `extern`. Adding puzzles to JSON propagates everywhere — no manual constants to bump. Why this matters: scene_win.c's "did we just finish the last puzzle?" branch (`if (current_puzzle_index >= NUM_PUZZLES)`) auto-tracks the bank size, so we never had to touch scene code for the content expansion.
+- **64KB ROM padding is constant regardless of content.** GBDK pads to the `-Wm-yo4` bank boundary. Going from 5 → 30 puzzles added ~5KB of data and the ROM stayed at exactly 65,536 bytes. Won't hit the cap until well over 100 puzzles or a major animation system. Plenty of headroom for Plan D.
+
 
 **Goal**: Grow the puzzle bank from 5 to 30 puzzles via user-authored content, then tag the repo as v1.0. End state: `content/puzzles.json` has 30 valid puzzles (validated by Plan A Phase 8's existing codegen tests), the ROM bakes them all in, and `git tag v1.0` marks the v1 release commit.
 
