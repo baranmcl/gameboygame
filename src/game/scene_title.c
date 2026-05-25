@@ -1,8 +1,10 @@
 #include "scene.h"
+#include "title_theme.h"
 #include "../engine/render.h"
 #include "../engine/input.h"
 #include "../engine/save.h"
 #include "../engine/sound.h"
+#include "../engine/music.h"
 #include <gb/gb.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -51,6 +53,11 @@ static void title_init(void) {
     // Default tile layout (font + UI) is already loaded by render_init()
     // from main.c. Plan B's TITLE scene is text-only; Plan C will load
     // title.png art via dynamic VRAM swapping.
+
+    // Plan D Phase 6: start the upbeat 8-bar title theme on CH1.
+    // SFX continue using CH2/CH4 (sfx_move/select/deselect on CH2,
+    // sfx_reject on CH4) so they don't conflict with the music.
+    music_play(&TITLE_THEME);
 }
 
 static void title_render(void) {
@@ -209,6 +216,7 @@ static void title_update(Scene *next_scene) {
 }
 
 static void title_teardown(void) {
+    music_stop();
 }
 
 const SceneVTable SCENE_TITLE_VTABLE = {
