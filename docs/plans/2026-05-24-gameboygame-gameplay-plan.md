@@ -77,7 +77,7 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 5/9 phases shipped, 0 deferred.
+**Overall:** 6/9 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
@@ -86,7 +86,7 @@ notes and commit messages.
 | 3 — UI tile assets + title art | ✅ Shipped | `e56ed26` | 2026-05-24; 13 UI tiles render in mGBA; title.png generated but excluded from ROM build (31KB dead weight) |
 | 4 — SCENE_TITLE | ✅ Shipped | `f6fe4cb` | 2026-05-24; first-boot menu + NEW GAME confirm flow verified in mGBA (in-progress 3-item menu deferred to Phase 5+ verification) |
 | 5 — SCENE_PLAY rendering + cursor | ✅ Shipped | `73e7ee0` | 2026-05-24; PLAY fully working in mGBA; **4 bugs discovered + fixed** (cursor invisible, render flicker, ALL-DATA-LOST UX, SDCC %c sprintf skew) |
-| 6 — SCENE_PLAY submission + animations | ⬜ Not started | — | START/B logic + CELL_FLASH + CORRECT_FLASH + LAYOUT_REFLOW + transitions |
+| 6 — SCENE_PLAY submission + animations | ✅ Shipped | `50d44fb` | 2026-05-24; full gameplay loop working; cursor-nav post-solve bug fixed with slot-based coords |
 | 7 — SCENE_WIN | ⬜ Not started | — | BAR_CASCADE + STATS_FADE + next-puzzle/title flow |
 | 8 — SCENE_LOSE | ⬜ Not started | — | LOSE_REVEAL + retry/skip menu (skip gated on fails≥3) |
 | 9 — SCENE_ALL_DONE + size check | ⬜ Not started | — | lifetime totals + cycle restart + final ROM size verification |
@@ -114,6 +114,8 @@ notes and commit messages.
 - **Phase 5 (2026-05-24): "ALL DATA LOST" prompt is meaningless on truly-fresh save.** Plan B Task 4.4's title_update unconditionally showed the NEW GAME confirm overlay. On a first-boot save (no progress at all — no in-progress, zero solves, zero skips, index 0), there is no data to lose. The prompt is just friction. Fix: 3-state menu detection (in-progress / has-any-progress / fresh) in TitleState; on the truly-fresh case, NEW GAME goes directly to PLAY without confirm.
 
 - **Phase 5 (2026-05-24): SDCC sprintf's `%c`-then-other-format-spec varargs alignment bug.** Triggered by Plan B Task 4.3's menu format `"%cCONTINUE P%d"`. SDCC promotes `char` to `int` (2 bytes) at the call site per C standard varargs rules, but SDCC's `printf` implementation reads `%c` via `va_arg(va, char)` (consumes only 1 byte). The 1-byte skew makes the following `%d` read from offset+1, producing value `0x0100 = 256` instead of `0x0001 = 1` (or `0x4300 = 17152` for a `'C'` followed by index 0, etc.). Visible symptom: "CONTINUE P256" on the menu despite the underlying save's `current_puzzle_index` being 0 (confirmed by separate `%d`-only debug print). **Workaround:** never combine `%c` with other format specs in one sprintf call. Either write the cursor character into `buf[0]` and sprintf into `buf+1`, or hand-write characters with no `%c`. The plan's example format strings need to be reworked for every scene's menu/header rendering — applied in scene_title.c Phase 5; scene_play.c's header uses only `%d` so it's safe.
+
+- **Phase 6 (2026-05-24): Cursor nav uses VISUAL slot coords, not absolute cell_idx.** When groups solve, the cell grid repacks (16→12→8→4 cells). The absolute cell_idx (0..15) has row = idx/2, col = idx%2 — but those don't correspond to visual position in the repacked layout. Plan B's draft used absolute coords for d-pad nav, which made the cursor jump across columns when pressing DOWN after a solve. Fix: navigate by SLOT (which IS visual position in the layout), then map slot back to cell_idx via `slot_to_cell_idx()`. Slot = visual position; cell_idx = puzzle data index. They're equal pre-solve and divergent after solves. Future scene-grid implementations should default to slot-based nav and only convert to cell_idx when reading puzzle data or save state.
 
 ---
 
@@ -1956,7 +1958,7 @@ git commit -m "B5: SCENE_PLAY rendering + cursor + SELECT_FLASH + CURSOR_BLINK +
 
 ## Phase 6 — SCENE_PLAY submission + animations + transitions
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `50d44fb` on 2026-05-24. Full gameplay loop: START submits 4-selection, is_group_correct branches into CORRECT (mark group, save, recompute layout, reposition cursor, transition to WIN if 4/4) or WRONG (decrement tries, CELL_FLASH→WRONG_SHAKE, save, transition to LOSE if 0). Real CELL_FLASH + CORRECT_FLASH animations chain to WRONG_SHAKE + LAYOUT_REFLOW respectively. Solved bars render at top with tier patterns + dark labels (category names deferred to Plan C — would need inverted font tiles to be visible). elapsed_seconds tick (60Hz frame counter → 1Hz second). Save writes at all 6 trigger points per spec §4. mGBA visual confirmation from user — full play→win and play→lose paths work, mid-puzzle quit+resume works. **One additional bug surfaced + fixed:** cursor-nav post-solve used absolute cell_idx coords which don't match the repacked visual layout; replaced with slot-based nav (compute current slot, advance by direction, map back to cell_idx).
 
 **Goal**: Wire up START → submission logic. On START with 4 selected: call `is_group_correct`; if correct, trigger CORRECT_FLASH → LAYOUT_REFLOW, set group bit, save, possibly transition to WIN; if wrong, trigger CELL_FLASH → WRONG_SHAKE, decrement tries, save, possibly transition to LOSE. Also: drive `elapsed_seconds` from a 60Hz VBlank counter. End state: the game is fully playable — user can solve a complete puzzle from start to finish, transitioning correctly to WIN or LOSE.
 
