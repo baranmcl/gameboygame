@@ -3,6 +3,7 @@
 #include "../engine/input.h"
 #include "../engine/save.h"
 #include "../engine/sound.h"
+#include <gb/gb.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -26,6 +27,7 @@ typedef struct {
 static TitleState ts;
 
 static void title_init(void) {
+    BGP_REG = 0xE4;  // defensive: see comment in scene_play's play_init
     save_load(&ts.save);
     ts.has_in_progress = (ts.save.ip_tries_remaining > 0);
     // "Any progress" = anything that would make CONTINUE meaningful.

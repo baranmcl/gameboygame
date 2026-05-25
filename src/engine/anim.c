@@ -108,11 +108,9 @@ void anim_tick(void) {
         case ANIM_CELL_FLASH:     tick_cell_flash(); break;
         case ANIM_CORRECT_FLASH:  tick_correct_flash(); break;
         case ANIM_LAYOUT_REFLOW:  tick_generic_stub(); break;  // visual handled by scene_play's render
-        case ANIM_BAR_CASCADE:
-        case ANIM_STATS_FADE:
-        case ANIM_LOSE_REVEAL:
-            tick_generic_stub();  // real impls in Phases 7-8
-            break;
+        case ANIM_BAR_CASCADE:    tick_generic_stub(); break;  // visual driven by scene_win's cascade_step
+        case ANIM_STATS_FADE:     tick_generic_stub(); break;  // visual handled by scene_win render (Plan C polishes)
+        case ANIM_LOSE_REVEAL:    tick_generic_stub(); break;  // visual driven by scene_lose's reveal_step (Phase 8)
         default:
             active.type = ANIM_NONE;
     }

@@ -121,6 +121,14 @@ static void render_solved_bar(uint8_t tier, uint8_t y) {
 }
 
 static void play_init(void) {
+    // Defensive palette reset. Scenes can be entered mid-animation if a
+    // chain transition fires before the prior anim's cleanup runs (e.g.,
+    // submission triggers CORRECT_FLASH then immediately transitions to
+    // WIN — CORRECT_FLASH's first tick can write BGP=0x1B before WIN's
+    // anim_start overwrites the active anim, stranding the inverted
+    // palette). Reset to normal at every scene boundary.
+    BGP_REG = 0xE4;
+
     save_load(&pg_save);
 
     if (pg_save.ip_tries_remaining > 0) {
