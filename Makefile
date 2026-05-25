@@ -10,12 +10,13 @@ LCC := lcc
 
 # Compiler / linker flags
 # -Wm-yt0x03 → MBC1+RAM+Battery cartridge type byte
-# -Wm-yo4   → 4 ROM banks (64KB total)
-# -Wm-ya1   → 1 RAM bank (8KB SRAM)
+# -Wm-yo4    → 4 ROM banks (64KB total)
+# -Wm-ya1    → 1 RAM bank (8KB SRAM)
 # -Wm-yn"GB" → ROM name in cartridge header
-# (No -Wm-yc — that would set CGB-compatible header byte. We target DMG only,
-#  so we omit it entirely. The cartridge header's CGB flag stays at 0x00 = DMG.)
-LCC_FLAGS := -Wm-yt0x03 -Wm-yo4 -Wm-ya1 -Wm-yn"GB"
+# -Wm-yc     → CGB-compatible cart header (sets byte 0x143 to 0x80).
+#              Works on both DMG and GBC. Use -Wm-yC (capital) for
+#              GBC-only carts; we want backwards-compat with DMG.
+LCC_FLAGS := -Wm-yt0x03 -Wm-yo4 -Wm-ya1 -Wm-yn"GB" -Wm-yc
 
 # Asset conversion (png2asset → C tile data)
 # Flags rationale:
