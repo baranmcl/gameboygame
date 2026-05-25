@@ -134,6 +134,96 @@
         { "tier": "blue",   "name": "ERAS",    "words": ["BRONZE", "IRON", "STONE", "MEDIEVAL"] },
         { "tier": "purple", "name": "QUICKLY", "words": ["FAST", "RAPID", "SWIFT", "BRISK"] }
       ]
+    },
+    {
+      "id": 16,
+      "categories": [
+        { "tier": "yellow", "name": "TOPPINGS", "words": ["PEPPER", "OLIVE", "ONION", "BACON"] },
+        { "tier": "green",  "name": "PASTAS",   "words": ["PENNE", "ZITI", "ROTINI", "FUSILLI"] },
+        { "tier": "blue",   "name": "ITALIAN",  "words": ["GELATO", "PANINI", "RISOTTO", "CALAMARI"] },
+        { "tier": "purple", "name": "WINES",    "words": ["MERLOT", "CHIANTI", "MALBEC", "CABERNET"] }
+      ]
+    },
+    {
+      "id": 17,
+      "categories": [
+        { "tier": "yellow", "name": "OFFICE",   "words": ["DESK", "CHAIR", "LAMP", "PHONE"] },
+        { "tier": "green",  "name": "MEETINGS", "words": ["AGENDA", "NOTES", "RECAP", "MINUTES"] },
+        { "tier": "blue",   "name": "STAFF",    "words": ["BOSS", "MANAGER", "INTERN", "LEAD"] },
+        { "tier": "purple", "name": "BENEFITS", "words": ["SALARY", "BONUS", "LEAVE", "PENSION"] }
+      ]
+    },
+    {
+      "id": 18,
+      "categories": [
+        { "tier": "yellow", "name": "BEACH",     "words": ["SAND", "SHELL", "WAVE", "TIDE"] },
+        { "tier": "green",  "name": "SWIMMING",  "words": ["STROKE", "DIVE", "FLOAT", "SPLASH"] },
+        { "tier": "blue",   "name": "SHARKS",    "words": ["HAMMER", "TIGER", "BULL", "MAKO"] },
+        { "tier": "purple", "name": "ICE CREAM", "words": ["VANILLA", "MOCHA", "COFFEE", "FUDGE"] }
+      ]
+    },
+    {
+      "id": 19,
+      "categories": [
+        { "tier": "yellow", "name": "ROCK",    "words": ["PUNK", "METAL", "GRUNGE", "INDIE"] },
+        { "tier": "green",  "name": "TEMPO",   "words": ["ALLEGRO", "LARGO", "ANDANTE", "PRESTO"] },
+        { "tier": "blue",   "name": "SYMBOLS", "words": ["SHARP", "FLAT", "REST", "CLEF"] },
+        { "tier": "purple", "name": "OPERA",   "words": ["ARIA", "DUET", "CHORUS", "DIVA"] }
+      ]
+    },
+    {
+      "id": 20,
+      "categories": [
+        { "tier": "yellow", "name": "CARD GAMES", "words": ["POKER", "BRIDGE", "RUMMY", "GIN"] },
+        { "tier": "green",  "name": "CHIPS",      "words": ["WHITE", "RED", "BLUE", "BLACK"] },
+        { "tier": "blue",   "name": "HANDS",      "words": ["PAIR", "FLUSH", "STRAIGHT", "HOUSE"] },
+        { "tier": "purple", "name": "BETS",       "words": ["ANTE", "CALL", "FOLD", "RAISE"] }
+      ]
+    },
+    {
+      "id": 21,
+      "categories": [
+        { "tier": "yellow", "name": "CUTS",     "words": ["DICE", "SLICE", "CHOP", "MINCE"] },
+        { "tier": "green",  "name": "HEAT",     "words": ["BOIL", "FRY", "BAKE", "GRILL"] },
+        { "tier": "blue",   "name": "PREP",     "words": ["KNEAD", "MIX", "ROLL", "WHISK"] },
+        { "tier": "purple", "name": "PRESERVE", "words": ["CAN", "FREEZE", "DRY", "CURE"] }
+      ]
+    },
+    {
+      "id": 22,
+      "categories": [
+        { "tier": "yellow", "name": "HOT",        "words": ["COFFEE", "TEA", "COCOA", "BROTH"] },
+        { "tier": "green",  "name": "COLD",       "words": ["SODA", "JUICE", "MILK", "WATER"] },
+        { "tier": "blue",   "name": "ALCOHOL",    "words": ["BEER", "WINE", "VODKA", "RUM"] },
+        { "tier": "purple", "name": "COCKTAILS",  "words": ["MOJITO", "MARTINI", "MIMOSA", "NEGRONI"] }
+      ]
+    },
+    {
+      "id": 23,
+      "categories": [
+        { "tier": "yellow", "name": "MORNING", "words": ["DAWN", "SUNRISE", "DAY", "BRUNCH"] },
+        { "tier": "green",  "name": "MIDDAY",  "words": ["NOON", "LUNCH", "SIESTA", "BREAK"] },
+        { "tier": "blue",   "name": "EVENING", "words": ["DUSK", "SUNSET", "DINNER", "TWILIGHT"] },
+        { "tier": "purple", "name": "NIGHT",   "words": ["STARS", "MOON", "SLEEP", "DREAM"] }
+      ]
+    },
+    {
+      "id": 24,
+      "categories": [
+        { "tier": "yellow", "name": "CHAIRS",  "words": ["STOOL", "BENCH", "THRONE", "RECLINER"] },
+        { "tier": "green",  "name": "BEDS",    "words": ["COT", "BUNK", "FUTON", "CRIB"] },
+        { "tier": "blue",   "name": "TABLES",  "words": ["COUNTER", "STAND", "BAR", "WORKTOP"] },
+        { "tier": "purple", "name": "STORAGE", "words": ["CHEST", "SHELF", "DRAWER", "CABINET"] }
+      ]
+    },
+    {
+      "id": 25,
+      "categories": [
+        { "tier": "yellow", "name": "SEW",      "words": ["NEEDLE", "THREAD", "THIMBLE", "PATCH"] },
+        { "tier": "green",  "name": "PAINT",    "words": ["BRUSH", "ROLLER", "PALETTE", "CANVAS"] },
+        { "tier": "blue",   "name": "WOODWORK", "words": ["SAW", "NAIL", "CHISEL", "LATHE"] },
+        { "tier": "purple", "name": "GARDEN",   "words": ["SHOVEL", "RAKE", "HOSE", "SEED"] }
+      ]
     }
   ]
 }
