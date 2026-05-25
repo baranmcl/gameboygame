@@ -73,6 +73,15 @@ static void title_render(void) {
                                 (uint8_t)(TITLE_TILE_BASE + tile_idx));
             }
         }
+        // Plan D Phase 4: paint the GBC accent palette over the banner's
+        // 8×4 tile region. No-op on DMG.
+        for (uint8_t r = 0; r < TITLE_BANNER_H; r++) {
+            for (uint8_t c = 0; c < TITLE_BANNER_W; c++) {
+                render_set_tile_palette((uint8_t)(banner_x + c),
+                                        (uint8_t)(banner_y + r),
+                                        GBC_PAL_TITLE);
+            }
+        }
     }
     render_text(4, 6, "CONNECTIONS");
 
