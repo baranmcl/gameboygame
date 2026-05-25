@@ -18,18 +18,52 @@
 static PlayState  ps;
 static GameSave   pg_save;
 static LayoutInfo pg_layout;
-static bool       redraw_needed = true;   // set on every state change; render() no-ops otherwise
+static bool       redraw_needed = true;
+static uint16_t   last_second_frame = 0;
 
 extern volatile uint16_t global_frame_count;
 
+// Map an absolute cell index (0..15) to its current layout slot.
+// When groups are solved, those 4 cells "disappear" and the remaining
+// unsolved cells get re-packed into pg_layout.cell_x/y entries 0..N-1.
+// Walk cells [0..cell_idx) and count how many are still unsolved — that
+// count is cell_idx's slot.
+static uint8_t cell_idx_to_slot(const Puzzle *puzzle, uint8_t cell_idx) {
+    uint8_t slot = 0;
+    for (uint8_t i = 0; i < cell_idx; i++) {
+        uint8_t g = find_group_of_word(puzzle, i);
+        if (!(ps.groups_solved & (1u << g))) slot++;
+    }
+    return slot;
+}
+
+static bool cell_idx_is_solved(const Puzzle *puzzle, uint8_t cell_idx) {
+    uint8_t g = find_group_of_word(puzzle, cell_idx);
+    return (ps.groups_solved & (1u << g)) != 0;
+}
+
+// Inverse of cell_idx_to_slot: given a slot in the current layout
+// (0..cells_count-1), return the absolute cell index (0..15).
+static uint8_t slot_to_cell_idx(const Puzzle *puzzle, uint8_t slot) {
+    uint8_t s = 0;
+    for (uint8_t i = 0; i < 16; i++) {
+        if (cell_idx_is_solved(puzzle, i)) continue;
+        if (s == slot) return i;
+        s++;
+    }
+    return 0;  // shouldn't happen if slot < cells_count
+}
+
 static void update_cursor_sprite(void) {
-    // For Phase 5 (groups_solved == 0), slot index == cursor_idx.
-    // Phase 6 will refine this when solved-group cells get skipped.
-    //
-    // Cursor sits on the same row as the cell's word text (cell_y +
-    // cell_h/2), not the top-left of the cell — otherwise as cell_h
-    // grows after solves the cursor and text would drift apart.
-    uint8_t slot = ps.cursor_idx;
+    // If cursor lands on an already-solved cell (e.g., after a correct
+    // submission), hide the sprite — caller should reposition cursor
+    // before next render.
+    const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
+    if (cell_idx_is_solved(puzzle, ps.cursor_idx)) {
+        move_sprite(CURSOR_SPRITE_INDEX, 0, 0);
+        return;
+    }
+    uint8_t slot = cell_idx_to_slot(puzzle, ps.cursor_idx);
     uint8_t tile_x = pg_layout.cell_x[slot];
     uint8_t tile_y = (uint8_t)(pg_layout.cell_y[slot] + pg_layout.cell_h / 2);
     move_sprite(CURSOR_SPRITE_INDEX,
@@ -37,10 +71,23 @@ static void update_cursor_sprite(void) {
                 (uint8_t)(tile_y * 8 + 16));
 }
 
+// Move cursor to the first unsolved cell starting from current cursor_idx
+// (wrapping). Called after a correct group solve to skip over the just-
+// solved cells.
+static void reposition_cursor_to_unsolved(const Puzzle *puzzle) {
+    for (uint8_t tries = 0; tries < 16; tries++) {
+        uint8_t check = (uint8_t)((ps.cursor_idx + tries) % 16);
+        if (!cell_idx_is_solved(puzzle, check)) {
+            ps.cursor_idx = check;
+            return;
+        }
+    }
+    // All 16 cells solved — caller should have transitioned to WIN already.
+    ps.cursor_idx = 0;
+}
+
 static void render_cell(const Puzzle *puzzle, uint8_t cell_idx) {
-    // Phase 5: identity mapping (groups_solved == 0 → slot == cell_idx).
-    // Phase 6 introduces cell_idx_to_slot() when solved-group cells get skipped.
-    uint8_t slot = cell_idx;
+    uint8_t slot = cell_idx_to_slot(puzzle, cell_idx);
     if (slot >= pg_layout.cells_count) return;
 
     uint8_t x = pg_layout.cell_x[slot];
@@ -54,8 +101,6 @@ static void render_cell(const Puzzle *puzzle, uint8_t cell_idx) {
         }
     }
 
-    // Center the word horizontally within the cell. Cell_w = 9 tiles;
-    // word_len at most 8 chars → text_x offset = (9 - word_len) / 2.
     const char *word = puzzle->words[cell_idx];
     uint8_t word_len = 0;
     while (word[word_len] && word_len < 9) word_len++;
@@ -64,10 +109,20 @@ static void render_cell(const Puzzle *puzzle, uint8_t cell_idx) {
     render_text(text_x, text_y, word);
 }
 
+static void render_solved_bar(uint8_t tier, uint8_t y) {
+    // Bar layout: [3 tier-pattern tiles] [14 solid-dark label tiles] [3 tier-pattern]
+    // Skip category-name overlay — font glyphs render dark-on-light, which
+    // would be invisible against the dark label background. Plan C will
+    // add an inverted font for this case.
+    uint8_t pattern_tile = (uint8_t)(UI_TILE_PATTERN_BASE + tier);
+    for (uint8_t x = 0; x < 3; x++)   render_set_tile(x, y, pattern_tile);
+    for (uint8_t x = 17; x < 20; x++) render_set_tile(x, y, pattern_tile);
+    for (uint8_t x = 3; x < 17; x++)  render_set_tile(x, y, UI_TILE_SOLID_DARK);
+}
+
 static void play_init(void) {
     save_load(&pg_save);
 
-    // Restore in-progress state if any, else fresh attempt.
     if (pg_save.ip_tries_remaining > 0) {
         ps.tries_remaining = pg_save.ip_tries_remaining;
         ps.groups_solved   = pg_save.ip_groups_solved;
@@ -81,27 +136,25 @@ static void play_init(void) {
     }
     ps.cursor_idx = 0;
     ps.show_quit_confirm = 0;
+    // If restoring an in-progress puzzle that already has some groups
+    // solved, cursor might land on a solved cell — reposition.
+    {
+        const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
+        if (cell_idx_is_solved(puzzle, ps.cursor_idx)) {
+            reposition_cursor_to_unsolved(puzzle);
+        }
+    }
 
     compute_play_layout(ps.groups_solved, &pg_layout);
     redraw_needed = true;
+    last_second_frame = global_frame_count;
 
-    // Load the cursor tile into SPRITE VRAM (separate addressable region
-    // from background VRAM despite physical overlap on DMG). Without this
-    // call, sprites would render whatever bytes happen to be at the sprite
-    // tile slot — typically zero-init or stale.
-    //
-    // ui_tiles_tiles[] starts with the cursor tile (16 bytes). We copy
-    // exactly that one tile into sprite slot UI_TILE_CURSOR.
     set_sprite_data(UI_TILE_CURSOR, 1, ui_tiles_tiles);
     set_sprite_tile(CURSOR_SPRITE_INDEX, UI_TILE_CURSOR);
     update_cursor_sprite();
 }
 
 static void play_render(void) {
-    // Sparse render: only rebuild the tilemap on actual state changes.
-    // Without this, calling render_clear + 360 tile writes every frame
-    // races with the VBlank ISR's render_flush — half the buffer can get
-    // pushed mid-rewrite, causing visible flicker + partial cells.
     if (!redraw_needed) return;
     redraw_needed = false;
 
@@ -111,13 +164,21 @@ static void play_render(void) {
 
     // Header
     char hdr[21];
-    sprintf(hdr, "P%d  TRIES:%d", pg_save.current_puzzle_index + 1, ps.tries_remaining);
+    sprintf(hdr, "P%d  TRIES:%d",
+            (int)pg_save.current_puzzle_index + 1,
+            (int)ps.tries_remaining);
     render_text(0, 0, hdr);
 
-    // Draw all 16 cells (Phase 5: assumes groups_solved == 0)
+    // Solved bars at the top (one per solved tier, top-to-bottom)
+    for (uint8_t i = 0; i < pg_layout.bars_count; i++) {
+        // Bar y in pg_layout is 0-indexed from screen top; shift by +1
+        // to leave the header row visible.
+        render_solved_bar(pg_layout.bar_tier[i], (uint8_t)(pg_layout.bar_y[i] + 1));
+    }
+
+    // Draw all unsolved cells
     for (uint8_t i = 0; i < 16; i++) {
-        uint8_t g = find_group_of_word(puzzle, i);
-        if (ps.groups_solved & (1u << g)) continue;
+        if (cell_idx_is_solved(puzzle, i)) continue;
         render_cell(puzzle, i);
     }
 
@@ -133,24 +194,35 @@ static void play_render(void) {
     }
 }
 
+// Helper: write the current in-progress fields to pg_save and save_store.
+// Called at every save-trigger point per spec §4.
+static void save_in_progress(void) {
+    pg_save.ip_tries_remaining = ps.tries_remaining;
+    pg_save.ip_groups_solved   = ps.groups_solved;
+    pg_save.ip_selected_mask   = ps.selected_mask;
+    pg_save.ip_elapsed_seconds = ps.elapsed_seconds;
+    save_store(&pg_save);
+}
+
 static void play_update(Scene *next_scene) {
-    // Cursor blink: toggle sprite visibility every 30 frames
-    if ((global_frame_count / 30) & 1) {
-        move_sprite(CURSOR_SPRITE_INDEX, 0, 0);  // hide off-screen
-    } else {
-        update_cursor_sprite();  // show at current cursor position
+    // Tick elapsed_seconds (60Hz frame count → 1Hz second tick)
+    if ((uint16_t)(global_frame_count - last_second_frame) >= 60) {
+        ps.elapsed_seconds++;
+        last_second_frame = (uint16_t)(last_second_frame + 60);
     }
 
-    if (anim_is_playing()) return;  // input locked during animations
+    // Cursor blink (cursor sprite visibility toggle every 30 frames)
+    if ((global_frame_count / 30) & 1) {
+        move_sprite(CURSOR_SPRITE_INDEX, 0, 0);
+    } else {
+        update_cursor_sprite();
+    }
+
+    if (anim_is_playing()) return;
 
     if (ps.show_quit_confirm) {
         if (input_pressed(BTN_A) || input_pressed(BTN_START)) {
-            // Save in-progress state so CONTINUE works on next boot
-            pg_save.ip_tries_remaining = ps.tries_remaining;
-            pg_save.ip_groups_solved   = ps.groups_solved;
-            pg_save.ip_selected_mask   = ps.selected_mask;
-            pg_save.ip_elapsed_seconds = ps.elapsed_seconds;
-            save_store(&pg_save);
+            save_in_progress();
             sfx_select();
             *next_scene = SCENE_TITLE;
         } else if (input_pressed(BTN_B)) {
@@ -161,34 +233,47 @@ static void play_update(Scene *next_scene) {
         return;
     }
 
-    // Cursor nav (auto-repeat). For Phase 5 (no solved groups), the
-    // skip-solved-cell loop in the plan terminates immediately on every
-    // entry — kept here for compatibility with Phase 6 where groups_solved
-    // can be non-zero.
-    if (input_repeat(BTN_UP)) {
-        uint8_t row = ps.cursor_idx / 2, col = ps.cursor_idx % 2;
-        row = (uint8_t)((row + 7) % 8);
-        ps.cursor_idx = (uint8_t)(row * 2 + col);
+    const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
+
+    // Cursor nav (slot-based, not absolute cell_idx).
+    // After group solves, cells re-pack into a smaller layout (16→12→8→4),
+    // so navigating by absolute cell_idx row/col makes the cursor jump
+    // across columns in confusing ways. Instead: compute the cursor's
+    // current visual slot, advance the slot per d-pad direction, then
+    // map back to cell_idx via slot_to_cell_idx().
+    uint8_t cur_slot = cell_idx_to_slot(puzzle, ps.cursor_idx);
+    uint8_t total_rows = (uint8_t)(pg_layout.cells_count / 2);
+
+    if (input_repeat(BTN_UP) && total_rows > 0) {
+        uint8_t col = (uint8_t)(cur_slot % 2);
+        uint8_t row = (uint8_t)(cur_slot / 2);
+        row = (uint8_t)((row + total_rows - 1) % total_rows);
+        uint8_t new_slot = (uint8_t)(row * 2 + col);
+        ps.cursor_idx = slot_to_cell_idx(puzzle, new_slot);
         update_cursor_sprite();
         sfx_move();
     }
-    if (input_repeat(BTN_DOWN)) {
-        uint8_t row = ps.cursor_idx / 2, col = ps.cursor_idx % 2;
-        row = (uint8_t)((row + 1) % 8);
-        ps.cursor_idx = (uint8_t)(row * 2 + col);
+    if (input_repeat(BTN_DOWN) && total_rows > 0) {
+        uint8_t col = (uint8_t)(cur_slot % 2);
+        uint8_t row = (uint8_t)(cur_slot / 2);
+        row = (uint8_t)((row + 1) % total_rows);
+        uint8_t new_slot = (uint8_t)(row * 2 + col);
+        ps.cursor_idx = slot_to_cell_idx(puzzle, new_slot);
         update_cursor_sprite();
         sfx_move();
     }
     if (input_pressed(BTN_LEFT)) {
-        if (ps.cursor_idx % 2 == 1) {
-            ps.cursor_idx--;
+        if (cur_slot % 2 == 1) {
+            uint8_t new_slot = (uint8_t)(cur_slot - 1);
+            ps.cursor_idx = slot_to_cell_idx(puzzle, new_slot);
             update_cursor_sprite();
             sfx_move();
         }
     }
     if (input_pressed(BTN_RIGHT)) {
-        if (ps.cursor_idx % 2 == 0) {
-            ps.cursor_idx++;
+        if (cur_slot % 2 == 0 && cur_slot + 1 < pg_layout.cells_count) {
+            uint8_t new_slot = (uint8_t)(cur_slot + 1);
+            ps.cursor_idx = slot_to_cell_idx(puzzle, new_slot);
             update_cursor_sprite();
             sfx_move();
         }
@@ -203,7 +288,7 @@ static void play_update(Scene *next_scene) {
             redraw_needed = true;
             if (is_now_set) sfx_select(); else sfx_deselect();
         } else {
-            sfx_reject();  // tried to select a 5th
+            sfx_reject();
         }
     }
 
@@ -223,13 +308,84 @@ static void play_update(Scene *next_scene) {
         sfx_select();
     }
 
-    // Phase 5 stub: START is wired in Phase 6 (submission logic).
-    // For now, START does nothing.
-    (void)next_scene;  // unused in Phase 5 (no transitions yet)
+    // START submits the current 4-selection
+    if (input_pressed(BTN_START)) {
+        if (count_selected(ps.selected_mask) != 4) {
+            sfx_reject();
+            return;
+        }
+
+        if (is_group_correct(puzzle, ps.selected_mask)) {
+            // Find which group was just solved (any selected cell's group)
+            uint8_t solved_group = 0;
+            for (uint8_t i = 0; i < 16; i++) {
+                if (ps.selected_mask & (1u << i)) {
+                    solved_group = find_group_of_word(puzzle, i);
+                    break;
+                }
+            }
+            ps.groups_solved |= (uint8_t)(1u << solved_group);
+            ps.selected_mask = 0;
+
+            uint8_t data[8] = { solved_group };
+            anim_start(ANIM_CORRECT_FLASH, data, 12);
+            sfx_correct();
+
+            // Recompute layout (one fewer group) and reposition cursor
+            // off the just-solved cells.
+            compute_play_layout(ps.groups_solved, &pg_layout);
+            reposition_cursor_to_unsolved(puzzle);
+            redraw_needed = true;
+
+            // Save mid-puzzle state for CONTINUE / hard-reset resume
+            save_in_progress();
+
+            // All 4 solved → transition to WIN, updating lifetime stats
+            if (ps.groups_solved == 0x0F) {
+                pg_save.puzzles_solved_total++;
+                pg_save.current_streak++;
+                if (pg_save.current_streak > pg_save.best_streak) {
+                    pg_save.best_streak = pg_save.current_streak;
+                }
+                pg_save.total_tries_used = (uint16_t)(
+                    pg_save.total_tries_used + (4 - ps.tries_remaining));
+                pg_save.current_puzzle_index++;
+                pg_save.current_puzzle_fails = 0;
+                // Clear in-progress
+                pg_save.ip_tries_remaining = 0;
+                pg_save.ip_groups_solved   = 0;
+                pg_save.ip_selected_mask   = 0;
+                pg_save.ip_elapsed_seconds = 0;
+                save_store(&pg_save);
+                *next_scene = SCENE_WIN;
+            }
+        } else {
+            // Wrong group
+            ps.tries_remaining--;
+            uint8_t data[8] = {
+                (uint8_t)(ps.selected_mask & 0xFF),
+                (uint8_t)((ps.selected_mask >> 8) & 0xFF)
+            };
+            anim_start(ANIM_CELL_FLASH, data, 12);
+            sfx_wrong();
+            redraw_needed = true;  // header needs to redraw TRIES value
+
+            save_in_progress();
+
+            if (ps.tries_remaining == 0) {
+                pg_save.current_puzzle_fails++;
+                pg_save.ip_tries_remaining = 0;
+                pg_save.ip_groups_solved   = 0;
+                pg_save.ip_selected_mask   = 0;
+                pg_save.ip_elapsed_seconds = 0;
+                save_store(&pg_save);
+                *next_scene = SCENE_LOSE;
+            }
+        }
+    }
 }
 
 static void play_teardown(void) {
-    // Hide cursor sprite when leaving PLAY
     move_sprite(CURSOR_SPRITE_INDEX, 0, 0);
 }
 

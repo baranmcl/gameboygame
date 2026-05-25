@@ -58,8 +58,40 @@ static void tick_select_flash(void) {
     active.frame++;
 }
 
-// All other animations stub to "advance + end on duration" for Plan A.
-// Plan B replaces these with real implementations as scenes need them.
+// CELL_FLASH: palette inversion every 3 frames for the duration, then
+// chain to WRONG_SHAKE for the satisfying jolt.
+// Chain logic at TOP of function (before increment) so the chain
+// reassignment is reachable — putting it after the increment would
+// hit the >= duration early-return on the next tick and miss the chain.
+static void tick_cell_flash(void) {
+    if (active.frame >= active.duration) {
+        BGP_REG = 0xE4;
+        active.type = ANIM_WRONG_SHAKE;
+        active.frame = 0;
+        active.duration = 6;
+        return;
+    }
+    BGP_REG = ((active.frame / 3) & 1) ? 0xE4 : 0x1B;
+    active.frame++;
+}
+
+// CORRECT_FLASH: same flash pattern, but chain to LAYOUT_REFLOW
+// (1-frame snap, mostly a no-op since scene_play's render already
+// re-renders with the new layout when redraw_needed is set).
+static void tick_correct_flash(void) {
+    if (active.frame >= active.duration) {
+        BGP_REG = 0xE4;
+        active.type = ANIM_LAYOUT_REFLOW;
+        active.frame = 0;
+        active.duration = 1;
+        return;
+    }
+    BGP_REG = ((active.frame / 3) & 1) ? 0xE4 : 0x1B;
+    active.frame++;
+}
+
+// All other animations stub to "advance + end on duration" — Plan B
+// Phases 7-8 give them real implementations as scenes need them.
 static void tick_generic_stub(void) {
     if (active.frame >= active.duration) {
         active.type = ANIM_NONE;
@@ -73,13 +105,13 @@ void anim_tick(void) {
         case ANIM_NONE:           return;
         case ANIM_WRONG_SHAKE:    tick_wrong_shake(); break;
         case ANIM_SELECT_FLASH:   tick_select_flash(); break;
-        case ANIM_CELL_FLASH:
-        case ANIM_CORRECT_FLASH:
-        case ANIM_LAYOUT_REFLOW:
+        case ANIM_CELL_FLASH:     tick_cell_flash(); break;
+        case ANIM_CORRECT_FLASH:  tick_correct_flash(); break;
+        case ANIM_LAYOUT_REFLOW:  tick_generic_stub(); break;  // visual handled by scene_play's render
         case ANIM_BAR_CASCADE:
         case ANIM_STATS_FADE:
         case ANIM_LOSE_REVEAL:
-            tick_generic_stub();
+            tick_generic_stub();  // real impls in Phases 7-8
             break;
         default:
             active.type = ANIM_NONE;
