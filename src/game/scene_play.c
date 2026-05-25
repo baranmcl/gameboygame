@@ -125,6 +125,16 @@ static void render_solved_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y) {
     while (name[name_len] && name_len < 14) name_len++;
     uint8_t text_x = (uint8_t)(3 + (14 - name_len) / 2);
     render_text_inv(text_x, y, name);
+
+    // Plan D Phase 3: paint the GBC palette index for the whole 20-tile
+    // bar row so the tile pattern + solid + text glyphs render in the tier
+    // color. tier enum (0=yellow..3=purple) maps directly to palette
+    // indices (GBC_PAL_TIER_YELLOW..GBC_PAL_TIER_PURPLE = 1..4).
+    // No-op on DMG (render_set_tile_palette is a no-op there).
+    uint8_t palette = (uint8_t)(GBC_PAL_TIER_YELLOW + tier);
+    for (uint8_t x = 0; x < SCREEN_TILES_W; x++) {
+        render_set_tile_palette(x, y, palette);
+    }
 }
 
 static void play_init(void) {
