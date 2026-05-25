@@ -33,7 +33,7 @@ LCC_FLAGS := -Wm-yt0x03 -Wm-yo4 -Wm-ya1 -Wm-yn"GBCX"
 # the runtime never references (Plan B's TITLE scene is text-only;
 # Plan C will load title tiles dynamically). To regenerate the .png
 # from source, run `python tools/make_title.py` directly.
-ASSETS_PNG := assets/font.png assets/ui_tiles.png
+ASSETS_PNG := assets/font.png assets/ui_tiles.png assets/font_inv.png
 ASSETS_GEN := $(patsubst assets/%.png,src/assets_gen/%.c,$(ASSETS_PNG))
 
 src/assets_gen/%.c: assets/%.png

@@ -7,9 +7,12 @@
 #define SCREEN_TILES_H 18
 
 // VRAM tile layout:
-//   tiles 0..63   = font (ASCII 0x20-0x5F, loaded by render_init)
-//   tiles 64..95  = UI chrome (loaded by render_init from ui_tiles.png)
-//   tiles 96+     = available for future use (e.g., title tiles in Plan C)
+//   tiles 0..63    = font (ASCII 0x20-0x5F, normal palette)
+//   tiles 64..95   = UI chrome (cursor, borders, tier patterns, etc.)
+//   tiles 96..159  = font_inv (same glyphs as font, palette inverted —
+//                    light glyphs on dark background, for text overlaying
+//                    solved bars where normal-font glyphs are invisible)
+//   tiles 160+     = available for future use (title art etc.)
 #define UI_TILE_BASE          64
 #define UI_TILE_CURSOR        (UI_TILE_BASE + 0)
 #define UI_TILE_CORNER_TL     (UI_TILE_BASE + 1)
@@ -22,6 +25,7 @@
 #define UI_TILE_FILL_SEL      (UI_TILE_BASE + 8)
 #define UI_TILE_PATTERN_BASE  (UI_TILE_BASE + 9)   // +0..+3 = yellow, green, blue, purple
 #define UI_TILE_SOLID_DARK    (UI_TILE_BASE + 13)
+#define FONT_INV_TILE_BASE    96
 
 // Initialize render subsystem: load font + UI tiles into VRAM, clear tilemap buffer.
 // Must be called once at boot before any other render_* function.
@@ -34,6 +38,12 @@ void render_clear(void);
 // Characters outside printable ASCII (0x20-0x5F) are rendered as space.
 // x and y must satisfy 0 <= x < SCREEN_TILES_W, 0 <= y < SCREEN_TILES_H.
 void render_text(uint8_t x, uint8_t y, const char *s);
+
+// Write a null-terminated ASCII string starting at tile column x, row y,
+// using the INVERTED font (light glyphs on dark background). Same character
+// mapping as render_text. Used for text overlay on dark backgrounds where
+// the normal font's dark glyphs would be invisible.
+void render_text_inv(uint8_t x, uint8_t y, const char *s);
 
 // Set a single tile by index in the tilemap buffer. For UI chrome
 // (cells, bars, borders) where text rendering doesn't apply.

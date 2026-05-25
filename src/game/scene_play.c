@@ -109,15 +109,21 @@ static void render_cell(const Puzzle *puzzle, uint8_t cell_idx) {
     render_text(text_x, text_y, word);
 }
 
-static void render_solved_bar(uint8_t tier, uint8_t y) {
+static void render_solved_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y) {
     // Bar layout: [3 tier-pattern tiles] [14 solid-dark label tiles] [3 tier-pattern]
-    // Skip category-name overlay — font glyphs render dark-on-light, which
-    // would be invisible against the dark label background. Plan C will
-    // add an inverted font for this case.
+    // Category name overlays the label using the inverted font tiles
+    // (light glyphs on dark — Plan C addition).
     uint8_t pattern_tile = (uint8_t)(UI_TILE_PATTERN_BASE + tier);
     for (uint8_t x = 0; x < 3; x++)   render_set_tile(x, y, pattern_tile);
     for (uint8_t x = 17; x < 20; x++) render_set_tile(x, y, pattern_tile);
     for (uint8_t x = 3; x < 17; x++)  render_set_tile(x, y, UI_TILE_SOLID_DARK);
+
+    // Overlay category name centered in the 14-tile label region (cols 3..16)
+    const char *name = puzzle->category_names[tier];
+    uint8_t name_len = 0;
+    while (name[name_len] && name_len < 14) name_len++;
+    uint8_t text_x = (uint8_t)(3 + (14 - name_len) / 2);
+    render_text_inv(text_x, y, name);
 }
 
 static void play_init(void) {
@@ -181,7 +187,7 @@ static void play_render(void) {
     for (uint8_t i = 0; i < pg_layout.bars_count; i++) {
         // Bar y in pg_layout is 0-indexed from screen top; shift by +1
         // to leave the header row visible.
-        render_solved_bar(pg_layout.bar_tier[i], (uint8_t)(pg_layout.bar_y[i] + 1));
+        render_solved_bar(puzzle, pg_layout.bar_tier[i], (uint8_t)(pg_layout.bar_y[i] + 1));
     }
 
     // Draw all unsolved cells

@@ -19,12 +19,18 @@ static bool     redraw_needed;
 
 extern volatile uint16_t global_frame_count;
 
-static void render_bar(uint8_t tier, uint8_t y) {
-    // Same shape as scene_win's render_bar
+static void render_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y) {
+    // Same shape as scene_win's render_bar; Plan C overlays category name.
     uint8_t pattern_tile = (uint8_t)(UI_TILE_PATTERN_BASE + tier);
     for (uint8_t x = 0; x < 3; x++)   render_set_tile(x, y, pattern_tile);
     for (uint8_t x = 17; x < 20; x++) render_set_tile(x, y, pattern_tile);
     for (uint8_t x = 3; x < 17; x++)  render_set_tile(x, y, UI_TILE_SOLID_DARK);
+
+    const char *name = puzzle->category_names[tier];
+    uint8_t name_len = 0;
+    while (name[name_len] && name_len < 14) name_len++;
+    uint8_t text_x = (uint8_t)(3 + (14 - name_len) / 2);
+    render_text_inv(text_x, y, name);
 }
 
 static void lose_init(void) {
@@ -49,8 +55,9 @@ static void lose_render(void) {
     render_text(3, 1, "OUT OF TRIES");
 
     // Reveal bars 0..reveal_step-1 (tiers 0=yellow .. 3=purple)
+    const Puzzle *puzzle = &PUZZLES[lose_save.current_puzzle_index];
     for (uint8_t i = 0; i < 4 && i < reveal_step; i++) {
-        render_bar(i, (uint8_t)(3 + i));
+        render_bar(puzzle, i, (uint8_t)(3 + i));
     }
 
     if (reveal_step >= 4) {

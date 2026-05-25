@@ -17,13 +17,19 @@ static bool     redraw_needed;
 
 extern volatile uint16_t global_frame_count;
 
-static void render_bar(uint8_t tier, uint8_t y) {
-    // Same shape as scene_play's solved bar (no category-name overlay
-    // since font is dark-on-light; Plan C adds inverted font).
+static void render_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y) {
+    // Same shape as scene_play's solved bar (Plan C now overlays the
+    // category name via render_text_inv).
     uint8_t pattern_tile = (uint8_t)(UI_TILE_PATTERN_BASE + tier);
     for (uint8_t x = 0; x < 3; x++)   render_set_tile(x, y, pattern_tile);
     for (uint8_t x = 17; x < 20; x++) render_set_tile(x, y, pattern_tile);
     for (uint8_t x = 3; x < 17; x++)  render_set_tile(x, y, UI_TILE_SOLID_DARK);
+
+    const char *name = puzzle->category_names[tier];
+    uint8_t name_len = 0;
+    while (name[name_len] && name_len < 14) name_len++;
+    uint8_t text_x = (uint8_t)(3 + (14 - name_len) / 2);
+    render_text_inv(text_x, y, name);
 }
 
 static void win_init(void) {
@@ -45,9 +51,16 @@ static void win_render(void) {
     render_clear();
     render_text(6, 1, "SOLVED!");
 
+    // Index into PUZZLES for the puzzle just completed. current_puzzle_index
+    // was incremented by PLAY's win-transition code, so the just-completed
+    // puzzle is at index-1. Defensive: cap at 0 if somehow underflowed.
+    uint8_t prev_idx = (win_save.current_puzzle_index == 0)
+        ? 0 : (uint8_t)(win_save.current_puzzle_index - 1);
+    const Puzzle *puzzle = &PUZZLES[prev_idx];
+
     // Reveal bars 0..cascade_step-1 (tiers 0=yellow .. 3=purple)
     for (uint8_t i = 0; i < 4 && i < cascade_step; i++) {
-        render_bar(i, (uint8_t)(3 + i));
+        render_bar(puzzle, i, (uint8_t)(3 + i));
     }
 
     if (cascade_step >= 4) {

@@ -109,9 +109,16 @@ HEIGHT = 32
 assert len(FONT) == 64, f"FONT must have 64 glyphs, got {len(FONT)}"
 
 
-def render_pixels():
-    """Return HEIGHT x WIDTH array of palette indices (0 = background, 3 = glyph)."""
-    px = [[0] * WIDTH for _ in range(HEIGHT)]
+def render_pixels(inverted=False):
+    """Return HEIGHT x WIDTH array of palette indices.
+
+    Default: glyph pixels = index 3 (darkest), background = index 0 (lightest).
+    inverted=True: swap — glyph pixels = index 0, background = index 3. Used
+    by Plan C to overlay text on dark backgrounds (solved-bar labels).
+    """
+    bg = 3 if inverted else 0
+    fg = 0 if inverted else 3
+    px = [[bg] * WIDTH for _ in range(HEIGHT)]
     for glyph_idx, glyph in enumerate(FONT):
         tx = glyph_idx % 16
         ty = glyph_idx // 16
@@ -119,7 +126,7 @@ def render_pixels():
             row_byte = glyph[row]
             for col in range(8):
                 if row_byte & (1 << col):
-                    px[ty * 8 + row][tx * 8 + col] = 3
+                    px[ty * 8 + row][tx * 8 + col] = fg
     return px
 
 
@@ -167,9 +174,13 @@ def write_png(path, pixels):
 
 
 def main():
-    output = sys.argv[1] if len(sys.argv) > 1 else "assets/font.png"
-    write_png(output, render_pixels())
-    print(f"Wrote {output} ({WIDTH}x{HEIGHT}, 2bpp indexed, {len(FONT)} glyphs)")
+    inverted = "--inverted" in sys.argv
+    pos_args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    default_out = "assets/font_inv.png" if inverted else "assets/font.png"
+    output = pos_args[0] if pos_args else default_out
+    write_png(output, render_pixels(inverted=inverted))
+    label = "inverted" if inverted else "normal"
+    print(f"Wrote {output} ({label}, {WIDTH}x{HEIGHT}, 2bpp indexed, {len(FONT)} glyphs)")
 
 
 if __name__ == "__main__":
