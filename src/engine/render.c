@@ -46,6 +46,11 @@ void render_init(void) {
     set_bkg_data(UI_TILE_BASE, ui_tiles_TILE_COUNT, ui_tiles_tiles);
     set_bkg_data(FONT_INV_TILE_BASE, font_inv_TILE_COUNT, font_inv_tiles);
     set_bkg_data(TITLE_TILE_BASE, title_TILE_COUNT, title_tiles);
+
+    // GBC: load all 6 background palettes. set_bkg_palette is a no-op on
+    // DMG (checks _cpu internally), so this is safe to call unconditionally.
+    set_bkg_palette(0, 6, gbc_palette_data);
+
     render_clear();
 }
 
