@@ -224,6 +224,51 @@
         { "tier": "blue",   "name": "WOODWORK", "words": ["SAW", "NAIL", "CHISEL", "LATHE"] },
         { "tier": "purple", "name": "GARDEN",   "words": ["SHOVEL", "RAKE", "HOSE", "SEED"] }
       ]
+    },
+    {
+      "id": 26,
+      "categories": [
+        { "tier": "yellow", "name": "TACOS",    "words": ["ASADA", "CHICKEN", "FISH", "POLLO"] },
+        { "tier": "green",  "name": "SALSAS",   "words": ["PICO", "VERDE", "ROJA", "HOT"] },
+        { "tier": "blue",   "name": "PEPPERS",  "words": ["CHILE", "JALAPENO", "POBLANO", "HABANERO"] },
+        { "tier": "purple", "name": "DESSERTS", "words": ["FLAN", "CHURRO", "HORCHATA", "PALETA"] }
+      ]
+    },
+    {
+      "id": 27,
+      "categories": [
+        { "tier": "yellow", "name": "SUMMER", "words": ["SOCCER", "BOXING", "DIVING", "GOLF"] },
+        { "tier": "green",  "name": "WINTER", "words": ["SKIING", "HOCKEY", "CURLING", "LUGE"] },
+        { "tier": "blue",   "name": "MEDALS", "words": ["TROPHY", "CUP", "MEDAL", "CROWN"] },
+        { "tier": "purple", "name": "FIELDS", "words": ["TRACK", "COURT", "RING", "RINK"] }
+      ]
+    },
+    {
+      "id": 28,
+      "categories": [
+        { "tier": "yellow", "name": "KEYS",     "words": ["SHIFT", "ENTER", "SPACE", "TAB"] },
+        { "tier": "green",  "name": "BROWSERS", "words": ["CHROME", "FIREFOX", "SAFARI", "EDGE"] },
+        { "tier": "blue",   "name": "FILES",    "words": ["DOCUMENT", "IMAGE", "VIDEO", "AUDIO"] },
+        { "tier": "purple", "name": "SOCIAL",   "words": ["TWEET", "POST", "LIKE", "SHARE"] }
+      ]
+    },
+    {
+      "id": 29,
+      "categories": [
+        { "tier": "yellow", "name": "FLOWERS", "words": ["ROSE", "TULIP", "DAISY", "LILY"] },
+        { "tier": "green",  "name": "TREES",   "words": ["OAK", "MAPLE", "PINE", "ELM"] },
+        { "tier": "blue",   "name": "BUSHES",  "words": ["SHRUB", "HEDGE", "BRAMBLE", "THICKET"] },
+        { "tier": "purple", "name": "BERRIES", "words": ["BLUE", "STRAW", "RASP", "BLACK"] }
+      ]
+    },
+    {
+      "id": 30,
+      "categories": [
+        { "tier": "yellow", "name": "PIRATES",  "words": ["KIDD", "MORGAN", "HOOK", "BONNEY"] },
+        { "tier": "green",  "name": "SHIPS",    "words": ["GALLEON", "SLOOP", "FRIGATE", "BRIG"] },
+        { "tier": "blue",   "name": "TREASURE", "words": ["GOLD", "JEWELS", "MAP", "DOUBLOON"] },
+        { "tier": "purple", "name": "ONBOARD",  "words": ["PLANK", "MAST", "DECK", "CREW"] }
+      ]
     }
   ]
 }
