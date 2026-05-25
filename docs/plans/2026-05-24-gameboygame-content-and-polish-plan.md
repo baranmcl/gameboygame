@@ -92,7 +92,7 @@ notes and commit messages.
 | 2 — Title screen art | ✅ Shipped | `6bba585` | 2026-05-24; "GB" 4× banner via custom row-major tile generator; cartridge title also "GB" |
 | 3 — Per-puzzle stats on WIN | ✅ Shipped | `af6fb73` | 2026-05-24; TRIES/TIME/ATTEMPT via scene_handoff.h global |
 | 4 — SFX pitch calibration | ✅ Shipped | `041d14e` | 2026-05-24; all 9 SFX calibrated + volume hierarchy applied per user ear-test |
-| 5 — STATS reveal + flicker eradication | ✅ Shipped | _next commit_ | 2026-05-24; pivoted from palette swap to incremental typewriter; also fixed scene_play A/B/wrong-submit flickers + dropped redundant SELECT_FLASH |
+| 5 — STATS reveal + flicker eradication | ✅ Shipped | `9cd865b` | 2026-05-24; pivoted from palette swap to incremental typewriter; also fixed scene_play A/B/wrong-submit flickers + dropped redundant SELECT_FLASH |
 | 6 — Content authoring + v1 tag | 🚧 In progress | — | user authors puzzles 6-30; final ROM size + v1.0 git tag |
 
 ### Deviations
@@ -1154,7 +1154,7 @@ git commit -m "C4: SFX pitch calibration — real C-major arpeggio for correct, 
 - **Pattern**: when you fix the underlying problem, audit the band-aids. `SELECT_FLASH` was a workaround for the very race we just eliminated; once gone, the band-aid became visible noise. CORRECT_FLASH and CELL_FLASH still earn their keep (they convey state — group correct/wrong — that the tile change doesn't directly indicate).
 - **SDCC warning "EVELYN the modified DOG"**: harmless optimizer note about loop reordering when conditional comparisons involve unsigned arithmetic. Appears in scenes/anim throughout. Not a real issue.
 
-**Ship SHA:** _TBD — committed in next step._
+**Ship SHA:** `9cd865b` on 2026-05-24.
 
 ---
 
