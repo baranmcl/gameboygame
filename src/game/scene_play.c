@@ -3,6 +3,7 @@
 #include "puzzles_types.h"
 #include "puzzle_logic.h"
 #include "layout.h"
+#include "scene_handoff.h"
 #include "../engine/render.h"
 #include "../engine/input.h"
 #include "../engine/save.h"
@@ -356,6 +357,13 @@ static void play_update(Scene *next_scene) {
 
             // All 4 solved → transition to WIN, updating lifetime stats
             if (ps.groups_solved == 0x0F) {
+                // Plan C: capture per-puzzle stats BEFORE the save
+                // mutations below reset current_puzzle_fails.
+                last_puzzle_result.tries_used = (uint8_t)(4 - ps.tries_remaining);
+                last_puzzle_result.elapsed_seconds = ps.elapsed_seconds;
+                last_puzzle_result.attempt_number =
+                    (uint8_t)(pg_save.current_puzzle_fails + 1);
+
                 pg_save.puzzles_solved_total++;
                 pg_save.current_streak++;
                 if (pg_save.current_streak > pg_save.best_streak) {
@@ -371,6 +379,7 @@ static void play_update(Scene *next_scene) {
                 pg_save.ip_selected_mask   = 0;
                 pg_save.ip_elapsed_seconds = 0;
                 save_store(&pg_save);
+
                 *next_scene = SCENE_WIN;
             }
         } else {

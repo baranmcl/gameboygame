@@ -1,6 +1,7 @@
 #include "scene.h"
 #include "game_state.h"
 #include "puzzles_types.h"
+#include "scene_handoff.h"
 #include "../engine/render.h"
 #include "../engine/input.h"
 #include "../engine/save.h"
@@ -65,18 +66,31 @@ static void win_render(void) {
 
     if (cascade_step >= 4) {
         char buf[21];
-        // win_save.current_puzzle_index was incremented by Phase 6's
-        // submission code before transitioning here, so it equals
-        // (1-based) the puzzle the player just finished.
-        sprintf(buf, "PUZZLE %d DONE", (int)win_save.current_puzzle_index);
+
+        // Per-puzzle stats (Plan C): TRIES, TIME, ATTEMPT from
+        // last_puzzle_result populated by PLAY at submission time.
+        sprintf(buf, "PUZZLE %d", (int)win_save.current_puzzle_index);
         render_text(2, 9, buf);
-        sprintf(buf, "STREAK: %d", (int)win_save.current_streak);
+
+        sprintf(buf, "TRIES: %d/4", (int)last_puzzle_result.tries_used);
+        render_text(2, 10, buf);
+
+        uint16_t mins = (uint16_t)(last_puzzle_result.elapsed_seconds / 60);
+        uint16_t secs = (uint16_t)(last_puzzle_result.elapsed_seconds % 60);
+        sprintf(buf, "TIME:  %d:%02d", (int)mins, (int)secs);
         render_text(2, 11, buf);
-        sprintf(buf, "BEST:   %d", (int)win_save.best_streak);
+
+        sprintf(buf, "ATTEMPT: %d", (int)last_puzzle_result.attempt_number);
         render_text(2, 12, buf);
 
-        render_text(2, 15, "START  NEXT");
-        render_text(2, 16, "SELECT TITLE");
+        // Lifetime stats
+        sprintf(buf, "STREAK:%d  BEST:%d",
+                (int)win_save.current_streak,
+                (int)win_save.best_streak);
+        render_text(2, 14, buf);
+
+        render_text(2, 16, "START  NEXT");
+        render_text(2, 17, "SELECT TITLE");
     }
 }
 

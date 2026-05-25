@@ -6,6 +6,7 @@
 #include "engine/anim.h"
 #include "game/scene.h"
 #include "game/game_state.h"
+#include "game/scene_handoff.h"
 
 extern const SceneVTable SCENE_TITLE_VTABLE;
 extern const SceneVTable SCENE_PLAY_VTABLE;
@@ -20,6 +21,10 @@ SceneVTable SCENES[5];
 // elapsed_seconds, etc.). Incremented in VBlank ISR; wraps at 0xFFFF
 // (~18 minutes at 60Hz). `volatile` because it's mutated in an ISR.
 volatile uint16_t global_frame_count = 0;
+
+// Plan C handoff data — PLAY populates before transitioning to WIN.
+// Zero-initialized (acceptable; readers always populate first).
+PuzzleResult last_puzzle_result;
 
 // VBlank ISR — called by GBDK once per frame (60 Hz on DMG).
 // Runs the per-frame engine-side ticks. Keep this lean: VBlank window
