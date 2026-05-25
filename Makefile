@@ -52,7 +52,7 @@ $(PUZZLE_OUT): $(PUZZLE_JSON) $(PUZZLE_SCRIPT)
 SRC := src/main.c \
        src/engine/render.c src/engine/input.c src/engine/save.c \
        src/engine/sound.c src/engine/anim.c \
-       src/game/puzzle_logic.c \
+       src/game/puzzle_logic.c src/game/layout.c \
        src/game/scene_title.c src/game/scene_play.c src/game/scene_win.c \
        src/game/scene_lose.c src/game/scene_all_done.c
 SRC += $(ASSETS_GEN)

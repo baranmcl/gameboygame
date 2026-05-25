@@ -16,10 +16,16 @@ extern const SceneVTable SCENE_ALL_DONE_VTABLE;
 // Scene table — populated imperatively in main() (see workaround note).
 SceneVTable SCENES[5];
 
+// Global frame counter — used by scenes for time-based logic (cursor blink,
+// elapsed_seconds, etc.). Incremented in VBlank ISR; wraps at 0xFFFF
+// (~18 minutes at 60Hz). `volatile` because it's mutated in an ISR.
+volatile uint16_t global_frame_count = 0;
+
 // VBlank ISR — called by GBDK once per frame (60 Hz on DMG).
 // Runs the per-frame engine-side ticks. Keep this lean: VBlank window
 // is short (~1.1ms), and overrunning corrupts the next frame's rendering.
 static void vblank_isr(void) {
+    global_frame_count++;
     anim_tick();
     sound_tick();
     render_flush();

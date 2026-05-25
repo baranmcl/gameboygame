@@ -41,11 +41,20 @@ static void tick_wrong_shake(void) {
 }
 
 static void tick_select_flash(void) {
-    // Stub for Plan A — Plan B will implement cell-specific tile inversion.
+    // Real implementation: whole-screen palette inversion for the duration.
+    // Cheap visual punctuation that doesn't require knowing cell coordinates
+    // (anim engine has no scene context). At 4 frames duration this is a
+    // single quick flash — toggles inverted/normal every 2 frames.
+    //
+    // Palette values:
+    //   0xE4 = 11 10 01 00 — identity (color N → shade N)
+    //   0x1B = 00 01 10 11 — inverted (color N → shade 3-N)
     if (active.frame >= active.duration) {
+        BGP_REG = 0xE4;  // restore normal palette on end
         active.type = ANIM_NONE;
         return;
     }
+    BGP_REG = ((active.frame / 2) & 1) ? 0xE4 : 0x1B;
     active.frame++;
 }
 

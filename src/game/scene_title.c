@@ -15,10 +15,12 @@ typedef enum {
 
 typedef struct {
     GameSave save;
-    bool     has_in_progress;
+    bool     has_in_progress;     // ip_tries_remaining > 0
+    bool     has_any_progress;    // any history at all (solved/skipped/index)
     uint8_t  menu_cursor;
-    uint8_t  menu_item_count;   // 2 if no in-progress, 3 if in-progress
-    bool     show_confirm;      // NEW GAME confirm overlay
+    uint8_t  menu_item_count;     // 1 (fresh) / 2 (returning) / 3 (mid-puzzle)
+    bool     show_confirm;        // NEW GAME confirm overlay
+    bool     redraw_needed;       // gates re-render to avoid every-frame flicker
 } TitleState;
 
 static TitleState ts;
@@ -26,15 +28,33 @@ static TitleState ts;
 static void title_init(void) {
     save_load(&ts.save);
     ts.has_in_progress = (ts.save.ip_tries_remaining > 0);
+    // "Any progress" = anything that would make CONTINUE meaningful.
+    // On a truly-fresh save (never played), CONTINUE and NEW GAME would
+    // do the same thing, so we hide CONTINUE and show only NEW GAME.
+    ts.has_any_progress = ts.has_in_progress
+        || (ts.save.current_puzzle_index > 0)
+        || (ts.save.puzzles_solved_total > 0)
+        || (ts.save.puzzles_skipped_total > 0);
+
     ts.menu_cursor = 0;
-    ts.menu_item_count = ts.has_in_progress ? 3 : 2;
+    if (ts.has_in_progress) {
+        ts.menu_item_count = 3;   // CONTINUE / RESTART / NEW GAME
+    } else if (ts.has_any_progress) {
+        ts.menu_item_count = 2;   // CONTINUE / NEW GAME
+    } else {
+        ts.menu_item_count = 1;   // NEW GAME only
+    }
     ts.show_confirm = false;
+    ts.redraw_needed = true;
     // Default tile layout (font + UI) is already loaded by render_init()
     // from main.c. Plan B's TITLE scene is text-only; Plan C will load
     // title.png art via dynamic VRAM swapping.
 }
 
 static void title_render(void) {
+    if (!ts.redraw_needed) return;
+    ts.redraw_needed = false;
+
     render_clear();
     render_text(7, 2, "GBCX");
     render_text(4, 4, "CONNECTIONS");
@@ -49,21 +69,46 @@ static void title_render(void) {
 
     char buf[21];
     uint8_t row = 9;
+    int idx_plus_1 = (int)ts.save.current_puzzle_index + 1;
+
+    // SDCC's sprintf has a varargs-alignment bug: when %c is followed by
+    // other format specs, the second-and-later args read from skewed byte
+    // offsets, producing garbage values (e.g. value 1 reads as 256 =
+    // 0x0100, a 1-byte high-byte shift). Workaround: write the cursor
+    // marker as a plain char into buf[0], then sprintf into buf+1.
     if (ts.has_in_progress) {
-        sprintf(buf, "%cCONTINUE P%d", ts.menu_cursor == 0 ? '>' : ' ', ts.save.current_puzzle_index + 1);
+        buf[0] = (ts.menu_cursor == 0) ? '>' : ' ';
+        sprintf(&buf[1], "CONTINUE P%d", idx_plus_1);
         render_text(2, row + 0, buf);
-        sprintf(buf, "%cRESTART P%d",  ts.menu_cursor == 1 ? '>' : ' ', ts.save.current_puzzle_index + 1);
+
+        buf[0] = (ts.menu_cursor == 1) ? '>' : ' ';
+        sprintf(&buf[1], "RESTART P%d", idx_plus_1);
         render_text(2, row + 1, buf);
-        sprintf(buf, "%cNEW GAME",     ts.menu_cursor == 2 ? '>' : ' ');
+
+        buf[0] = (ts.menu_cursor == 2) ? '>' : ' ';
+        buf[1] = 'N'; buf[2] = 'E'; buf[3] = 'W'; buf[4] = ' ';
+        buf[5] = 'G'; buf[6] = 'A'; buf[7] = 'M'; buf[8] = 'E'; buf[9] = 0;
         render_text(2, row + 2, buf);
-    } else {
-        sprintf(buf, "%cCONTINUE",     ts.menu_cursor == 0 ? '>' : ' ');
+    } else if (ts.has_any_progress) {
+        buf[0] = (ts.menu_cursor == 0) ? '>' : ' ';
+        buf[1] = 'C'; buf[2] = 'O'; buf[3] = 'N'; buf[4] = 'T'; buf[5] = 'I';
+        buf[6] = 'N'; buf[7] = 'U'; buf[8] = 'E'; buf[9] = 0;
         render_text(2, row + 0, buf);
-        sprintf(buf, "%cNEW GAME",     ts.menu_cursor == 1 ? '>' : ' ');
+
+        buf[0] = (ts.menu_cursor == 1) ? '>' : ' ';
+        buf[1] = 'N'; buf[2] = 'E'; buf[3] = 'W'; buf[4] = ' ';
+        buf[5] = 'G'; buf[6] = 'A'; buf[7] = 'M'; buf[8] = 'E'; buf[9] = 0;
         render_text(2, row + 1, buf);
+    } else {
+        buf[0] = (ts.menu_cursor == 0) ? '>' : ' ';
+        buf[1] = 'N'; buf[2] = 'E'; buf[3] = 'W'; buf[4] = ' ';
+        buf[5] = 'G'; buf[6] = 'A'; buf[7] = 'M'; buf[8] = 'E'; buf[9] = 0;
+        render_text(2, row + 0, buf);
     }
 
-    sprintf(buf, "SOLVED:%d  BEST:%d", ts.save.puzzles_solved_total, ts.save.best_streak);
+    sprintf(buf, "SOLVED:%d  BEST:%d",
+            (int)ts.save.puzzles_solved_total,
+            (int)ts.save.best_streak);
     render_text(2, 16, buf);
 }
 
@@ -77,24 +122,30 @@ static void title_update(Scene *next_scene) {
             *next_scene = SCENE_PLAY;
         } else if (input_pressed(BTN_B)) {
             ts.show_confirm = false;
+            ts.redraw_needed = true;
             sfx_deselect();
         }
         return;
     }
 
     // Menu navigation
-    if (input_repeat(BTN_UP)) {
-        ts.menu_cursor = (uint8_t)((ts.menu_cursor + ts.menu_item_count - 1) % ts.menu_item_count);
-        sfx_move();
-    }
-    if (input_repeat(BTN_DOWN)) {
-        ts.menu_cursor = (uint8_t)((ts.menu_cursor + 1) % ts.menu_item_count);
-        sfx_move();
+    if (ts.menu_item_count > 1) {
+        if (input_repeat(BTN_UP)) {
+            ts.menu_cursor = (uint8_t)((ts.menu_cursor + ts.menu_item_count - 1) % ts.menu_item_count);
+            ts.redraw_needed = true;
+            sfx_move();
+        }
+        if (input_repeat(BTN_DOWN)) {
+            ts.menu_cursor = (uint8_t)((ts.menu_cursor + 1) % ts.menu_item_count);
+            ts.redraw_needed = true;
+            sfx_move();
+        }
     }
 
     // Selection
     if (input_pressed(BTN_A) || input_pressed(BTN_START)) {
         if (ts.has_in_progress) {
+            // 3-item menu: CONTINUE / RESTART / NEW GAME
             if (ts.menu_cursor == 0) {
                 sfx_select();
                 *next_scene = SCENE_PLAY;
@@ -109,16 +160,27 @@ static void title_update(Scene *next_scene) {
                 *next_scene = SCENE_PLAY;
             } else {
                 ts.show_confirm = true;
+                ts.redraw_needed = true;
                 sfx_select();
             }
-        } else {
+        } else if (ts.has_any_progress) {
+            // 2-item menu: CONTINUE / NEW GAME
             if (ts.menu_cursor == 0) {
                 sfx_select();
                 *next_scene = SCENE_PLAY;
             } else {
                 ts.show_confirm = true;
+                ts.redraw_needed = true;
                 sfx_select();
             }
+        } else {
+            // 1-item menu: NEW GAME only — no progress to lose, so skip
+            // the confirm overlay. save_reset is harmless on already-empty
+            // save (idempotent).
+            save_reset(&ts.save);
+            save_store(&ts.save);
+            sfx_select();
+            *next_scene = SCENE_PLAY;
         }
     }
 }
