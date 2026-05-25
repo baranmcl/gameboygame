@@ -7,6 +7,14 @@
 #include <string.h>
 
 static uint8_t tilemap_buf[SCREEN_TILES_W * SCREEN_TILES_H];
+
+// Parallel attribute buffer for GBC tile-attribute writes (palette index
+// in low 3 bits; bits 3-7 unused — we don't use VRAM bank 1 for tiles,
+// X/Y flip, or priority). Maintained alongside tilemap_buf and pushed
+// to VRAM bank 1 in render_flush. On DMG this buffer is harmlessly
+// maintained but not pushed to VRAM (DMG has no bank 1).
+static uint8_t attr_buf[SCREEN_TILES_W * SCREEN_TILES_H];
+
 static uint8_t dirty = 0;
 
 // GBC background palette data — 6 palettes × 4 colors × 2 bytes per color.
@@ -56,6 +64,7 @@ void render_init(void) {
 
 void render_clear(void) {
     memset(tilemap_buf, 0, sizeof(tilemap_buf));
+    memset(attr_buf, 0, sizeof(attr_buf));
     dirty = 1;
 }
 
@@ -93,8 +102,23 @@ void render_set_tile(uint8_t x, uint8_t y, uint8_t tile) {
     dirty = 1;
 }
 
+void render_set_tile_palette(uint8_t x, uint8_t y, uint8_t palette_idx) {
+    if (x >= SCREEN_TILES_W || y >= SCREEN_TILES_H) return;
+    attr_buf[y * SCREEN_TILES_W + x] = palette_idx & 0x07;
+    dirty = 1;
+}
+
 void render_flush(void) {
     if (!dirty) return;
     set_bkg_tiles(0, 0, SCREEN_TILES_W, SCREEN_TILES_H, tilemap_buf);
+    if (is_gbc()) {
+        // Switch to VRAM bank 1 to write tile-attribute data, then back
+        // to bank 0 (which holds tile graphics and the regular tilemap).
+        // GBDK's set_bkg_tiles writes to whichever bank is currently
+        // selected, so the bank switch is essential.
+        VBK_REG = 1;
+        set_bkg_tiles(0, 0, SCREEN_TILES_W, SCREEN_TILES_H, attr_buf);
+        VBK_REG = 0;
+    }
     dirty = 0;
 }

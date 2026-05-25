@@ -80,6 +80,14 @@ void render_text_inv(uint8_t x, uint8_t y, const char *s);
 // (cells, bars, borders) where text rendering doesn't apply.
 void render_set_tile(uint8_t x, uint8_t y, uint8_t tile);
 
+// Set the GBC background palette index for a single tile. On DMG this
+// is a no-op (DMG has no per-tile palettes). On GBC, color rendering of
+// the tile at (x, y) uses palette `palette_idx` (one of the GBC_PAL_*
+// constants above). Must be paired with a corresponding render_set_tile
+// or render_text* call to actually write tile data at that cell —
+// palette assignment alone doesn't draw anything.
+void render_set_tile_palette(uint8_t x, uint8_t y, uint8_t palette_idx);
+
 // Push the in-memory tilemap buffer to VRAM. MUST be called only during VBlank.
 // Typically called from the VBlank interrupt handler.
 void render_flush(void);
