@@ -1,10 +1,12 @@
 # Game Boy Connections
 
-A homebrew Game Boy ROM that recreates the [NYT Connections](https://www.nytimes.com/games/connections) puzzle game on the original DMG. 30 puzzles, 4 difficulty tiers per puzzle, full save support, and ear-tuned sound effects.
+A homebrew Game Boy ROM that recreates the [NYT Connections](https://www.nytimes.com/games/connections) puzzle game. 30 puzzles, 4 difficulty tiers per puzzle, full save support, ear-tuned sound effects, and a short upbeat chiptune on the title screen.
+
+Plays on original Game Boy (DMG) in monochrome. On Game Boy Color (GBC) — same ROM, no need to download anything different — the four tier bars render in their faithful NYT yellow/green/blue/purple.
 
 ## Play it
 
-1. **Download the ROM** from the [v1.0 release page](https://github.com/baranmcl/gameboygame/releases/tag/v1.0) — the `gameboygame.gb` asset.
+1. **Download the ROM** from the [latest release page](https://github.com/baranmcl/gameboygame/releases/latest) — the `gameboygame.gb` asset.
 
 2. **Get a Game Boy emulator.** Any DMG-compatible emulator will work. Recommended:
    - **[mGBA](https://mgba.io/downloads.html)** — cross-platform, accurate, free. The ROM was developed and tested against mGBA.
@@ -50,4 +52,4 @@ Puzzle content lives in `content/puzzles.json` and is validated + compiled into 
 
 ## Project status
 
-**v1.0 shipped 2026-05-24.** The game is fully playable end-to-end on any DMG emulator. Hardware verification on real Game Boy hardware via flash cart is deferred to a future release.
+**v1.1 shipped 2026-05-25.** GBC color support + title-screen chiptune added. Backwards-compatible with DMG (same ROM file works on both). Hardware verification on real Game Boy hardware via flash cart is deferred to a future release.
