@@ -84,13 +84,13 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 2/6 phases shipped, 0 deferred.
+**Overall:** 3/6 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Inverted font tiles | ✅ Shipped | `e23b462` | 2026-05-24; category names now readable on all 3 scenes' bars |
 | 2 — Title screen art | ✅ Shipped | `6bba585` | 2026-05-24; "GB" 4× banner via custom row-major tile generator; cartridge title also "GB" |
-| 3 — Per-puzzle stats on WIN | ⬜ Not started | — | scene_handoff.h + PLAY→WIN data + display |
+| 3 — Per-puzzle stats on WIN | ✅ Shipped | `af6fb73` | 2026-05-24; TRIES/TIME/ATTEMPT via scene_handoff.h global |
 | 4 — SFX pitch calibration | ⬜ Not started | — | tune the 9 SFX from placeholder estimates to real notes |
 | 5 — STATS_FADE animation | ⬜ Not started | — | replace Plan B stub with real 2-stage palette swap |
 | 6 — Content authoring + v1 tag | ⬜ Not started | — | user authors puzzles 6-30; final ROM size + v1.0 git tag |
@@ -653,7 +653,7 @@ git commit -m "C2: title screen banner — 2x-scale GBCX logo via dedicated titl
 
 ## Phase 3 — Per-puzzle stats on WIN
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `af6fb73` on 2026-05-24. scene_handoff.h with PuzzleResult struct (tries_used + elapsed_seconds + attempt_number); `last_puzzle_result` defined in main.c. scene_play.c captures stats at the 4/4-solved branch BEFORE pg_save.current_puzzle_fails resets to 0. scene_win.c displays per-puzzle TRIES/TIME/ATTEMPT alongside lifetime STREAK+BEST. mGBA visual confirmation received from user.
 
 **Goal**: WIN scene currently shows lifetime stats (current_streak, best_streak). Add per-puzzle stats (tries used on THIS puzzle + elapsed time). End state: WIN shows TRIES: N/4 + TIME: M:SS for the puzzle just completed, alongside the lifetime streak.
 
