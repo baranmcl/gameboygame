@@ -11,9 +11,11 @@
 #include <stdbool.h>
 
 static GameSave win_save;
-static uint8_t  cascade_step;        // 0..4 — current bar being revealed
-static uint16_t cascade_frame;       // frames since cascade_step last advanced
+static uint8_t  cascade_step;          // 0..4 — current bar being revealed
+static uint16_t cascade_start_frame;   // global_frame_count snapshot at init
 static bool     redraw_needed;
+
+extern volatile uint16_t global_frame_count;
 
 static void render_bar(uint8_t tier, uint8_t y) {
     // Same shape as scene_play's solved bar (no category-name overlay
@@ -28,7 +30,7 @@ static void win_init(void) {
     BGP_REG = 0xE4;  // defensive: see comment in scene_play's play_init
     save_load(&win_save);
     cascade_step = 0;
-    cascade_frame = 0;
+    cascade_start_frame = global_frame_count;
     redraw_needed = true;
     sfx_win();
     // BAR_CASCADE = 4 bars × 20 frames = 80 frames total.
@@ -66,14 +68,18 @@ static void win_render(void) {
 }
 
 static void win_update(Scene *next_scene) {
+    // Derive cascade_step from global_frame_count, not main-loop iteration
+    // counts (which throttle behind 60Hz when redraw_needed triggers
+    // expensive render passes — see scene_lose.c for full rationale).
     if (anim_current() == ANIM_BAR_CASCADE) {
-        cascade_frame++;
-        if (cascade_frame >= 20 && cascade_step < 4) {
-            cascade_step++;
-            cascade_frame = 0;
+        uint16_t elapsed = (uint16_t)(global_frame_count - cascade_start_frame);
+        uint8_t expected_step = (uint8_t)(elapsed / 20);
+        if (expected_step > 4) expected_step = 4;
+        if (expected_step != cascade_step) {
+            cascade_step = expected_step;
             redraw_needed = true;
         }
-        return;  // input locked during cascade
+        return;
     }
 
     if (anim_is_playing()) return;
