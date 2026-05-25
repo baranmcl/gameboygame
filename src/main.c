@@ -4,6 +4,7 @@
 #include "engine/save.h"
 #include "engine/sound.h"
 #include "engine/anim.h"
+#include "engine/music.h"
 #include "game/scene.h"
 #include "game/game_state.h"
 #include "game/scene_handoff.h"
@@ -33,6 +34,7 @@ static void vblank_isr(void) {
     global_frame_count++;
     anim_tick();
     sound_tick();
+    music_tick();
     render_flush();
 }
 
@@ -40,6 +42,7 @@ void main(void) {
     BGP_REG = 0xE4;
     render_init();
     sound_init();
+    music_init();
 
     // SDCC has shown inconsistent behavior with designated-initializer
     // arrays of structs whose members are function pointers defined in
