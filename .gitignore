@@ -6,6 +6,8 @@ test/test_puzzle_logic
 test/test_puzzle_logic.exe
 test/test_layout
 test/test_layout.exe
+test/test_music
+test/test_music.exe
 
 # Python bytecode
 __pycache__/
