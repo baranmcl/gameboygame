@@ -84,22 +84,24 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** 1/6 phases shipped, 0 deferred.
+**Overall:** 2/6 phases shipped, 0 deferred.
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
 | 1 — Inverted font tiles | ✅ Shipped | `e23b462` | 2026-05-24; category names now readable on all 3 scenes' bars |
-| 2 — Title screen art | ⬜ Not started | — | smaller title.png (logo only) + integration in scene_title |
+| 2 — Title screen art | ✅ Shipped | `6bba585` | 2026-05-24; "GB" 4× banner via custom row-major tile generator; cartridge title also "GB" |
 | 3 — Per-puzzle stats on WIN | ⬜ Not started | — | scene_handoff.h + PLAY→WIN data + display |
 | 4 — SFX pitch calibration | ⬜ Not started | — | tune the 9 SFX from placeholder estimates to real notes |
 | 5 — STATS_FADE animation | ⬜ Not started | — | replace Plan B stub with real 2-stage palette swap |
 | 6 — Content authoring + v1 tag | ⬜ Not started | — | user authors puzzles 6-30; final ROM size + v1.0 git tag |
 
 ### Deviations
-*(none yet — record per the Living Document Contract as they occur)*
+
+- **Phase 2 (2026-05-24): "GBCX" → "GB" branding rename mid-phase.** User decided the abbreviated "GB" was cleaner than "GBCX". Banner letters scaled from 2× (16×16 px each = 16 tiles total) to 4× (32×32 px each = 32 tiles total) to fill comparable screen space with fewer letters. Cartridge header title also renamed via `-Wm-yn"GB"`. SRAM magic sentinel kept as "GBCX" — purely an SRAM-validity check, not user-visible.
 
 ### Discoveries
-*(none yet — record per the Living Document Contract as they occur)*
+
+- **Phase 2 (2026-05-24): png2asset tile-emission order is NOT row-major for 64×32 images.** Plan A's font tile sheet is 128×32 and png2asset emits its tiles in row-major order with the `-spr8x8 -sprite_no_optimize -tiles_only` flags — verified by working ASCII→tile-index mapping. The same flags applied to a 64×32 title image produced visibly broken tile output: each individual 8×8 tile's byte content was correct (representing the right 8×8 region of the source image), but the index→position mapping was scrambled. Could not quickly reverse-engineer png2asset's sprite-iteration logic for this image shape. **Workaround:** `tools/make_title.py` now writes `src/assets_gen/title.{c,h}` directly via a custom ~40-line Python writer that emits row-major explicitly (tile N at image position `(col=N%tiles_wide, row=N//tiles_wide)`, each tile = 8 rows × 2 bytes GB planar 2bpp format, MSB = leftmost pixel). The PNG output is kept for visual debugging and Plan D content swaps; the .c/.h are the authoritative source. Gitignore updated with `src/assets_gen/*` glob + `!src/assets_gen/title.{c,h}` exceptions to track them in git.
 
 ---
 
@@ -421,7 +423,7 @@ git commit -m "C1: inverted font tiles + render_text_inv — category names visi
 
 ## Phase 2 — Title screen art
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED at `6bba585` on 2026-05-24. Title scene shows a 4×-scale "GB" banner (64×32 px, 32 tiles loaded at TITLE_TILE_BASE=160) instead of font-rendered text. Cartridge header title also renamed `GBCX → GB` via `-Wm-yn"GB"` Makefile flag (SRAM magic sentinel kept as "GBCX" with explanatory comment — it's just bytes, not branding). **Deviation from plan:** mid-phase user retitled "GBCX → GB", bumping banner letters from 2× to 4× scale (16 → 32 tiles). **One bug surfaced + fixed:** png2asset's tile-emission order for 64×32 images doesn't match its row-major behavior on 128×32 font images. Worked around with a custom ~40-line Python tile-data writer in `tools/make_title.py` that emits row-major explicitly; `src/assets_gen/title.{c,h}` are now checked into git as generated artifacts (gitignore exception added).
 
 **Goal**: Replace the text-only TITLE scene with a graphical logo at the top. End state: TITLE shows a "GBCX CONNECTIONS" logo as graphical art (multiple tiles, larger and more polished than what `render_text` can produce) above the menu, instead of the current text headers.
 
