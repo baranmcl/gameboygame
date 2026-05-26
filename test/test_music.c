@@ -145,6 +145,43 @@ static void test_rest_note_advances(void) {
     ASSERT(music_current_step() == 2);
 }
 
+// ----- Test: CH2 path advances in lockstep with CH1 -----
+// v1.2 Phase 4 — the ch2_notes parallel array, when non-NULL, makes
+// the player emit CH2 notes at the same frame boundaries as CH1. We
+// can't observe NR2x register writes from host code, but we CAN verify
+// the state machine still advances correctly when ch2_notes is set —
+// the emit_note_ch2 call is a no-op on host (compiled out) but the
+// surrounding state machine isn't.
+static void test_ch2_lockstep_advance(void) {
+    music_init();
+    MusicStep ch1_steps[] = {
+        { MUSIC_NOTE_C5, 2 },
+        { MUSIC_NOTE_E5, 2 },
+    };
+    uint8_t ch2[] = { MUSIC_NOTE_G4, MUSIC_NOTE_C5 };
+    MusicTrack t = { .steps = ch1_steps, .ch2_notes = ch2, .length = 2, .loop_start = 2 };
+    music_play(&t);
+
+    ASSERT(music_current_step() == 0);
+    music_tick(); music_tick();  // step 0 frames done
+    music_tick();                // advances to step 1
+    ASSERT(music_current_step() == 1);
+}
+
+// ----- Test: ch2_notes NULL is honored (no crash) -----
+// Existing single-channel tracks still work — the optional parallel
+// array stays as the existing default (NULL via implicit zero-init).
+static void test_ch2_null_safe(void) {
+    music_init();
+    MusicStep ch1_steps[] = { { MUSIC_NOTE_C5, 1 } };
+    MusicTrack t = { .steps = ch1_steps, .ch2_notes = 0, .length = 1, .loop_start = 1 };
+    music_play(&t);  // must not crash on NULL ch2_notes
+    ASSERT(music_is_playing());
+    music_tick();    // frames_remaining: 1 -> 0
+    music_tick();    // end of track, no loop -> stop
+    ASSERT(!music_is_playing());
+}
+
 int main(void) {
     test_init_no_active_track();
     test_play_null_stops();
@@ -154,6 +191,8 @@ int main(void) {
     test_loop_back();
     test_stop_while_playing();
     test_rest_note_advances();
+    test_ch2_lockstep_advance();
+    test_ch2_null_safe();
 
     printf("Tests run: %d, Failed: %d\n", tests_run, tests_failed);
     return tests_failed == 0 ? 0 : 1;

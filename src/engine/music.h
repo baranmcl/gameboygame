@@ -41,8 +41,15 @@ typedef struct {
 // from step `length - 1` back to step `loop_start` after that step's
 // duration elapses. For non-looping tracks set loop_start == length
 // (player will stop after the last step).
+//
+// v1.2: ch2_notes is an optional parallel array providing a CH2 harmony
+// voice. NULL = CH1-only (existing tracks unchanged). If non-NULL, MUST
+// be `length` elements long; CH2 note transitions happen at the same
+// frame boundaries as CH1 (lockstep). Each entry is a MUSIC_NOTE_*
+// value (or MUSIC_NOTE_REST to silence CH2 for that step).
 typedef struct {
     const MusicStep *steps;
+    const uint8_t   *ch2_notes;
     uint8_t          length;
     uint8_t          loop_start;
 } MusicTrack;

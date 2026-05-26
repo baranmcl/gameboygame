@@ -58,6 +58,27 @@ static void emit_note(uint8_t note) {
 #endif
 }
 
+// v1.2: emit a CH2 harmony note. Mirrors emit_note but uses NR2x
+// registers (CH2 has no frequency sweep — no equivalent of NR10).
+// Volume one tier lower than CH1 (5 vs 6) so the harmony sits below
+// the melody rather than competing with it.
+static void emit_note_ch2(uint8_t note) {
+#ifdef __SDCC
+    if (note == MUSIC_NOTE_REST) {
+        NR22_REG = 0x00;
+        NR24_REG = 0x80;
+        return;
+    }
+    if (note >= MUSIC_NOTE_COUNT) return;
+    NR21_REG = 0x40;        // 25% duty cycle, matches CH1
+    NR22_REG = 0x53;        // volume 5 (one below CH1's 6), decay, step 3
+    NR23_REG = music_note_table[note].lo;
+    NR24_REG = music_note_table[note].hi;
+#else
+    (void)note;
+#endif
+}
+
 void music_init(void) {
     active_track = 0;
     current_step_idx = 0xFF;
@@ -73,6 +94,10 @@ void music_play(const MusicTrack *track) {
     current_step_idx = 0;
     frames_remaining = track->steps[0].duration_frames;
     emit_note(track->steps[0].note);
+    // v1.2: emit the lockstep CH2 note if the track has a harmony layer.
+    if (track->ch2_notes) {
+        emit_note_ch2(track->ch2_notes[0]);
+    }
 }
 
 void music_stop(void) {
@@ -80,6 +105,7 @@ void music_stop(void) {
     current_step_idx = 0xFF;
     frames_remaining = 0;
     emit_note(MUSIC_NOTE_REST);
+    emit_note_ch2(MUSIC_NOTE_REST);  // also silence CH2 (no-op if never used)
 }
 
 void music_tick(void) {
@@ -102,6 +128,10 @@ void music_tick(void) {
     current_step_idx = next_idx;
     frames_remaining = active_track->steps[next_idx].duration_frames;
     emit_note(active_track->steps[next_idx].note);
+    // v1.2: lockstep CH2 advance — same step boundary, same frame.
+    if (active_track->ch2_notes) {
+        emit_note_ch2(active_track->ch2_notes[next_idx]);
+    }
 }
 
 bool music_is_playing(void) {
