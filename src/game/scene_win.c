@@ -19,28 +19,45 @@ static uint8_t  stats_step;                  // 0..6 — typewriter progress (li
 static uint16_t stats_start_frame;           // global_frame_count when stats reveal started
 static uint8_t  last_rendered_cascade_step;  // diff against cascade_step in win_render
 static uint8_t  last_rendered_stats_step;    // diff against stats_step in win_render
+static uint8_t  slide_cols;                  // v1.2: 0..20, columns of the currently-sliding bar painted
+static uint8_t  last_rendered_slide_cols;    // diff against slide_cols for the in-progress bar
 static bool     redraw_needed;
 
 extern volatile uint16_t global_frame_count;
 
-static void render_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y) {
-    // Same shape as scene_play's solved bar (Plan C now overlays the
-    // category name via render_text_inv).
+// v1.2 Phase 2: reveal_cols parameter for slide-in animation. When
+// reveal_cols == SCREEN_TILES_W (20), paints the full bar (matches v1.1
+// behavior). When < 20, paints only the leftmost `reveal_cols` columns;
+// the right side stays as whatever was previously there (typically
+// blank, since we never re-render bars after they're fully shown).
+// Category name + palette writes are gated on full reveal to avoid
+// chopped-letter artifacts during slide-in.
+static void render_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y, uint8_t reveal_cols) {
     uint8_t pattern_tile = (uint8_t)(UI_TILE_PATTERN_BASE + tier);
-    for (uint8_t x = 0; x < 3; x++)   render_set_tile(x, y, pattern_tile);
-    for (uint8_t x = 17; x < 20; x++) render_set_tile(x, y, pattern_tile);
-    for (uint8_t x = 3; x < 17; x++)  render_set_tile(x, y, UI_TILE_SOLID_DARK);
+    for (uint8_t x = 0; x < 3; x++) {
+        if (x < reveal_cols) render_set_tile(x, y, pattern_tile);
+    }
+    for (uint8_t x = 17; x < 20; x++) {
+        if (x < reveal_cols) render_set_tile(x, y, pattern_tile);
+    }
+    for (uint8_t x = 3; x < 17; x++) {
+        if (x < reveal_cols) render_set_tile(x, y, UI_TILE_SOLID_DARK);
+    }
 
-    const char *name = puzzle->category_names[tier];
-    uint8_t name_len = 0;
-    while (name[name_len] && name_len < 14) name_len++;
-    uint8_t text_x = (uint8_t)(3 + (14 - name_len) / 2);
-    render_text_inv(text_x, y, name);
+    // Overlay category name + tier palette only on full reveal — avoids
+    // partial letters / partial palette tinting during slide-in.
+    if (reveal_cols >= SCREEN_TILES_W) {
+        const char *name = puzzle->category_names[tier];
+        uint8_t name_len = 0;
+        while (name[name_len] && name_len < 14) name_len++;
+        uint8_t text_x = (uint8_t)(3 + (14 - name_len) / 2);
+        render_text_inv(text_x, y, name);
 
-    // Plan D Phase 3: same tier-color palette write as scene_play.
-    uint8_t palette = (uint8_t)(GBC_PAL_TIER_YELLOW + tier);
-    for (uint8_t x = 0; x < SCREEN_TILES_W; x++) {
-        render_set_tile_palette(x, y, palette);
+        // Plan D Phase 3: tier-color palette over the whole 20-tile row.
+        uint8_t palette = (uint8_t)(GBC_PAL_TIER_YELLOW + tier);
+        for (uint8_t x = 0; x < SCREEN_TILES_W; x++) {
+            render_set_tile_palette(x, y, palette);
+        }
     }
 }
 
@@ -54,6 +71,8 @@ static void win_init(void) {
     stats_start_frame = 0;
     last_rendered_cascade_step = 0;
     last_rendered_stats_step = 0;
+    slide_cols = 0;
+    last_rendered_slide_cols = 0;
     redraw_needed = false;
     sfx_win();
 
@@ -81,15 +100,29 @@ static void win_render(void) {
         ? 0 : (uint8_t)(win_save.current_puzzle_index - 1);
     const Puzzle *puzzle = &PUZZLES[prev_idx];
 
-    // Render any NEWLY-revealed bars (one or more per redraw call).
+    // Render any NEWLY-fully-revealed bars (one or more per redraw call).
     // Re-rendering an already-shown bar is wasted work but harmless;
     // tracking last_rendered_cascade_step minimizes it to one bar per step.
+    // Each fully-revealed bar gets reveal_cols = SCREEN_TILES_W (full).
     while (last_rendered_cascade_step < cascade_step
         && last_rendered_cascade_step < 4) {
         render_bar(puzzle,
                    last_rendered_cascade_step,
-                   (uint8_t)(3 + last_rendered_cascade_step));
+                   (uint8_t)(3 + last_rendered_cascade_step),
+                   SCREEN_TILES_W);
         last_rendered_cascade_step++;
+        last_rendered_slide_cols = 0;  // next bar's slide-in starts from zero
+    }
+
+    // v1.2 Phase 2: the currently-sliding bar (if any) needs incremental
+    // redraw as slide_cols grows. cascade_step < 4 means there's a bar
+    // still revealing; render it with the current slide_cols width.
+    // Only re-render when slide_cols changed to avoid wasted tile writes.
+    if (cascade_step < 4 && last_rendered_slide_cols != slide_cols) {
+        render_bar(puzzle, cascade_step,
+                   (uint8_t)(3 + cascade_step),
+                   slide_cols);
+        last_rendered_slide_cols = slide_cols;
     }
 
     // Render NEWLY-revealed stats lines (one per typewriter step).
@@ -141,6 +174,25 @@ static void win_update(Scene *next_scene) {
         if (expected_step != cascade_step) {
             cascade_step = expected_step;
             redraw_needed = true;
+        }
+
+        // v1.2 Phase 2: drive slide_cols for the currently-revealing bar.
+        // Each bar's 20-frame slot subdivides into 5 frames of slide-in
+        // (4 cols/frame: 4, 8, 12, 16, 20) + 15 frames fully revealed.
+        // Only compute when there's still a bar in progress (cascade_step
+        // < 4); after the last bar fully reveals we let slide stay at 20.
+        if (cascade_step < 4) {
+            uint16_t bar_local = (uint16_t)(elapsed % 20);
+            uint8_t new_slide;
+            if (bar_local < 5) {
+                new_slide = (uint8_t)((bar_local + 1) * 4);
+            } else {
+                new_slide = SCREEN_TILES_W;  // 20
+            }
+            if (new_slide != slide_cols) {
+                slide_cols = new_slide;
+                redraw_needed = true;
+            }
         }
         return;
     }
