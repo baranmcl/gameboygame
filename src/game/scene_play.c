@@ -9,6 +9,8 @@
 #include "../engine/save.h"
 #include "../engine/sound.h"
 #include "../engine/anim.h"
+#include "../engine/music.h"
+#include "play_sfx.h"
 #include "../assets_gen/ui_tiles.h"
 #include <gb/gb.h>
 #include <stdio.h>
@@ -177,6 +179,15 @@ static void play_init(void) {
     set_sprite_data(UI_TILE_CURSOR, 1, ui_tiles_tiles);
     set_sprite_tile(CURSOR_SPRITE_INDEX, UI_TILE_CURSOR);
     update_cursor_sprite();
+
+    // v1.2 Phase 6: puzzle-start stinger on fresh-puzzle entry only.
+    // ip_tries_remaining == 0 means there's no in-progress state to
+    // restore — i.e., this is a NEW GAME, RESTART, or replay (Phase 7)
+    // entry, NOT a CONTINUE. CONTINUE shouldn't fanfare because it
+    // would interrupt a player mid-thought.
+    if (pg_save.ip_tries_remaining == 0) {
+        music_play(&PLAY_STINGER);
+    }
 }
 
 // Paint the header row. Header is fixed-width ("P<n>  TRIES:<m>"), so
