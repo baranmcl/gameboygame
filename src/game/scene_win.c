@@ -21,6 +21,14 @@ static uint8_t  last_rendered_cascade_step;  // diff against cascade_step in win
 static uint8_t  last_rendered_stats_step;    // diff against stats_step in win_render
 static uint8_t  slide_cols;                  // v1.2: 0..20, columns of the currently-sliding bar painted
 static uint8_t  last_rendered_slide_cols;    // diff against slide_cols for the in-progress bar
+// v1.2 Phase 3: tiered milestones. Set in win_init from the loaded save.
+// Rendered AFTER the stats typewriter completes (replaces the standard
+// menu hints at rows 16-17 when active). Streak wins priority when both
+// hit on the same WIN — bigger achievement, single visual.
+static bool     milestone_lifetime_hit;
+static bool     milestone_streak_hit;
+static bool     milestone_displayed;          // one-shot: text painted
+static bool     milestone_fanfare_played;     // one-shot: SFX fired
 static bool     redraw_needed;
 
 extern volatile uint16_t global_frame_count;
@@ -73,6 +81,17 @@ static void win_init(void) {
     last_rendered_stats_step = 0;
     slide_cols = 0;
     last_rendered_slide_cols = 0;
+
+    // v1.2 Phase 3: milestone detection. scene_play already incremented
+    // puzzles_solved_total and current_streak before transitioning here,
+    // so the loaded values are the post-win totals.
+    milestone_lifetime_hit = (win_save.puzzles_solved_total > 0
+                           && (win_save.puzzles_solved_total % 5) == 0);
+    milestone_streak_hit   = (win_save.current_streak > 0
+                           && (win_save.current_streak % 5) == 0);
+    milestone_displayed      = false;
+    milestone_fanfare_played = false;
+
     redraw_needed = false;
     sfx_win();
 
@@ -156,10 +175,34 @@ static void win_render(void) {
                 render_text(2, 14, buf);
                 break;
             case 6:
-                render_text(2, 16, "START  NEXT");
-                render_text(2, 17, "SELECT TITLE");
+                // v1.2 Phase 3: when a milestone is active, the milestone
+                // text replaces the standard menu hints at rows 16-17.
+                // Painted in the milestone block below (after the loop).
+                // When NO milestone is active, the standard hints render
+                // here as in v1.1.
+                if (!milestone_streak_hit && !milestone_lifetime_hit) {
+                    render_text(2, 16, "START  NEXT");
+                    render_text(2, 17, "SELECT TITLE");
+                }
                 break;
         }
+    }
+
+    // v1.2 Phase 3: milestone text overlay. Streak priority — if both
+    // lifetime and streak milestones fire on the same WIN, streak's
+    // bigger text wins. Painted ONCE after the typewriter completes.
+    if (last_rendered_stats_step >= 6 && !milestone_displayed) {
+        char buf[21];
+        if (milestone_streak_hit) {
+            sprintf(buf, "STREAK %d!", (int)win_save.current_streak);
+            render_text(5, 16, buf);
+            render_text(2, 17, "PRESS START!");
+        } else if (milestone_lifetime_hit) {
+            sprintf(buf, "%d SOLVED!", (int)win_save.puzzles_solved_total);
+            render_text(5, 16, buf);
+            render_text(2, 17, "PRESS START!");
+        }
+        milestone_displayed = true;
     }
 }
 
@@ -227,6 +270,19 @@ static void win_update(Scene *next_scene) {
     }
 
     if (anim_is_playing()) return;
+
+    // v1.2 Phase 3: milestone fanfare. Fires ONCE on the first frame
+    // after stats_step reaches 6 AND any milestone is hit. Reuses
+    // existing SFX (sfx_win for streak — celebratory; sfx_correct for
+    // lifetime — gentler chime) to keep sound vocabulary consistent.
+    if (stats_step >= 6 && !milestone_fanfare_played) {
+        if (milestone_streak_hit) {
+            sfx_win();
+        } else if (milestone_lifetime_hit) {
+            sfx_correct();
+        }
+        milestone_fanfare_played = true;
+    }
 
     if (input_pressed(BTN_START)) {
         sfx_select();
