@@ -1,6 +1,6 @@
 # Game Boy Connections
 
-A homebrew Game Boy ROM that recreates the [NYT Connections](https://www.nytimes.com/games/connections) puzzle game. 30 puzzles, 4 difficulty tiers per puzzle, full save support, ear-tuned sound effects, and a short upbeat chiptune on the title screen.
+A homebrew Game Boy ROM that recreates the [NYT Connections](https://www.nytimes.com/games/connections) puzzle game. 50 puzzles, 4 difficulty tiers per puzzle, full save support, replay any completed puzzle, per-puzzle best-time records, multi-voice title chiptune with drums, and tiered milestone celebrations.
 
 Plays on original Game Boy (DMG) in monochrome. On Game Boy Color (GBC) — same ROM, no need to download anything different — the four tier bars render in their faithful NYT yellow/green/blue/purple.
 
@@ -52,4 +52,4 @@ Puzzle content lives in `content/puzzles.json` and is validated + compiled into 
 
 ## Project status
 
-**v1.1 shipped 2026-05-25.** GBC color support + title-screen chiptune added. Backwards-compatible with DMG (same ROM file works on both). Hardware verification on real Game Boy hardware via flash cart is deferred to a future release.
+**v1.2 shipped 2026-05-26.** Adds puzzle-select replay screen + per-puzzle best records, tiered milestone celebrations (every 5 lifetime solves + every 5-puzzle streak + all-puzzles-done), multi-voice title music with kick/snare drum beat, puzzle-start CH1 fanfare, ALL_DONE scene with 2-voice fanfare + scrolling text, cascade-bar slide-in animations, and 20 more puzzles (50 total). Save data from v1.0/v1.1 carries over automatically. Same ROM works on DMG and GBC. Hardware verification on real Game Boy hardware via flash cart is deferred to a future release.
