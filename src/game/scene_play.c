@@ -406,6 +406,31 @@ static void play_update(Scene *next_scene) {
                 last_puzzle_result.attempt_number =
                     (uint8_t)(pg_save.current_puzzle_fails + 1);
 
+                // v1.2: persist per-puzzle records before the index
+                // advances. Always set the completed bit (idempotent).
+                // Update best_time / best_tries only if this attempt
+                // beats the existing record (sentinel 0 = no record).
+                // NOTE: Phase 7 (replay mode) will swap pg_save.current_puzzle_index
+                // → play_puzzle_idx here so that replays update the
+                // replayed puzzle's records, not the linear-progression one.
+                {
+                    uint8_t puzzle_idx = pg_save.current_puzzle_index;
+                    uint8_t tries_used = (uint8_t)(4 - ps.tries_remaining);
+                    if (puzzle_idx < MAX_PUZZLES_SUPPORTED) {
+                        pg_save.completed_bits[puzzle_idx >> 3] |=
+                            (uint8_t)(1u << (puzzle_idx & 7));
+
+                        if (pg_save.puzzle_best_time[puzzle_idx] == 0
+                         || ps.elapsed_seconds < pg_save.puzzle_best_time[puzzle_idx]) {
+                            pg_save.puzzle_best_time[puzzle_idx] = ps.elapsed_seconds;
+                        }
+                        if (pg_save.puzzle_best_tries[puzzle_idx] == 0
+                         || tries_used < pg_save.puzzle_best_tries[puzzle_idx]) {
+                            pg_save.puzzle_best_tries[puzzle_idx] = tries_used;
+                        }
+                    }
+                }
+
                 pg_save.puzzles_solved_total++;
                 pg_save.current_streak++;
                 if (pg_save.current_streak > pg_save.best_streak) {
