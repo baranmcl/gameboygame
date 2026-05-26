@@ -359,6 +359,96 @@
         { "tier": "blue",   "name": "FISHING", "words": ["ROD", "BAIT", "REEL", "NET"] },
         { "tier": "purple", "name": "BIRDING", "words": ["SCOPE", "GUIDE", "NEST", "FLIGHT"] }
       ]
+    },
+    {
+      "id": 41,
+      "categories": [
+        { "tier": "yellow", "name": "MEDICAL",  "words": ["DOCTOR", "NURSE", "DENTIST", "SURGEON"] },
+        { "tier": "green",  "name": "LEGAL",    "words": ["LAWYER", "JUDGE", "COURT", "JURY"] },
+        { "tier": "blue",   "name": "TEACHING", "words": ["TEACHER", "TUTOR", "DEAN", "COACH"] },
+        { "tier": "purple", "name": "SCIENCE",  "words": ["PHYSICS", "CHEMIST", "BIOLOGY", "GEOLOGY"] }
+      ]
+    },
+    {
+      "id": 42,
+      "categories": [
+        { "tier": "yellow", "name": "FURNITURE", "words": ["BED", "DRESSER", "CHAIR", "WARDROBE"] },
+        { "tier": "green",  "name": "BEDDING",   "words": ["SHEET", "BLANKET", "PILLOW", "QUILT"] },
+        { "tier": "blue",   "name": "NIGHTWEAR", "words": ["PAJAMAS", "ROBE", "SLIPPER", "GOWN"] },
+        { "tier": "purple", "name": "LULL",      "words": ["LULLABY", "SHEEP", "STORY", "COZY"] }
+      ]
+    },
+    {
+      "id": 43,
+      "categories": [
+        { "tier": "yellow", "name": "BREADS",   "words": ["BAGEL", "ROLL", "NAAN", "PITA"] },
+        { "tier": "green",  "name": "PASTRIES", "words": ["DONUT", "MUFFIN", "ECLAIR", "DANISH"] },
+        { "tier": "blue",   "name": "CAKES",    "words": ["CARROT", "POUND", "BIRTHDAY", "CHEESE"] },
+        { "tier": "purple", "name": "COOKIES",  "words": ["SUGAR", "OATMEAL", "GINGER", "FORTUNE"] }
+      ]
+    },
+    {
+      "id": 44,
+      "categories": [
+        { "tier": "yellow", "name": "SPICES",     "words": ["CUMIN", "PAPRIKA", "CINNAMON", "CLOVE"] },
+        { "tier": "green",  "name": "HERBS",      "words": ["PARSLEY", "OREGANO", "DILL", "CHIVES"] },
+        { "tier": "blue",   "name": "FLAVORINGS", "words": ["SALT", "GARLIC", "MSG", "VINEGAR"] },
+        { "tier": "purple", "name": "HOT",        "words": ["CAYENNE", "JALAPENO", "HABANERO", "GHOST"] }
+      ]
+    },
+    {
+      "id": 45,
+      "categories": [
+        { "tier": "yellow", "name": "ZODIAC",   "words": ["LEO", "ARIES", "VIRGO", "TAURUS"] },
+        { "tier": "green",  "name": "MOONS",    "words": ["LUNA", "IO", "EUROPA", "CHARON"] },
+        { "tier": "blue",   "name": "STARS",    "words": ["SOL", "RIGEL", "VEGA", "SIRIUS"] },
+        { "tier": "purple", "name": "GALAXIES", "words": ["SPIRAL", "OVAL", "RING", "BARRED"] }
+      ]
+    },
+    {
+      "id": 46,
+      "categories": [
+        { "tier": "yellow", "name": "PARTS",   "words": ["TIRE", "WHEEL", "AXLE", "BRAKE"] },
+        { "tier": "green",  "name": "BICYCLE", "words": ["PEDAL", "CHAIN", "GEAR", "SEAT"] },
+        { "tier": "blue",   "name": "SKATE",   "words": ["BOARD", "BLADE", "DERBY", "RAMP"] },
+        { "tier": "purple", "name": "TRUCK",   "words": ["HAUL", "CARGO", "CAB", "BED"] }
+      ]
+    },
+    {
+      "id": 47,
+      "categories": [
+        { "tier": "yellow", "name": "ROCK STYLES", "words": ["ALT", "HARDROCK", "SOFT", "FOLKROCK"] },
+        { "tier": "green",  "name": "ELECTRONIC",  "words": ["TECHNO", "DUBSTEP", "TRANCE", "HOUSE"] },
+        { "tier": "blue",   "name": "JAZZ",        "words": ["SWING", "BEBOP", "FUSION", "DIXIE"] },
+        { "tier": "purple", "name": "CLASSICAL",   "words": ["BAROQUE", "CHAMBER", "OPERA", "SYMPHONY"] }
+      ]
+    },
+    {
+      "id": 48,
+      "categories": [
+        { "tier": "yellow", "name": "PLAY",       "words": ["SWING", "SLIDE", "SEESAW", "FORT"] },
+        { "tier": "green",  "name": "NATURE",     "words": ["TREES", "GRASS", "POND", "BENCH"] },
+        { "tier": "blue",   "name": "ACTIVITIES", "words": ["PICNIC", "JOG", "FRISBEE", "KITE"] },
+        { "tier": "purple", "name": "ANIMALS",    "words": ["SQUIRREL", "PIGEON", "DUCK", "DOG"] }
+      ]
+    },
+    {
+      "id": 49,
+      "categories": [
+        { "tier": "yellow", "name": "HOLIDAYS", "words": ["EASTER", "XMAS", "BIRTHDAY", "EARTHDAY"] },
+        { "tier": "green",  "name": "PARTY",    "words": ["CAKE", "GIFTS", "BALLOON", "CONFETTI"] },
+        { "tier": "blue",   "name": "WEDDING",  "words": ["BRIDE", "GROOM", "VOWS", "RING"] },
+        { "tier": "purple", "name": "PARADE",   "words": ["FLOAT", "BAND", "MARCH", "DRUMS"] }
+      ]
+    },
+    {
+      "id": 50,
+      "categories": [
+        { "tier": "yellow", "name": "ENDINGS", "words": ["END", "STOP", "FINISH", "CLOSE"] },
+        { "tier": "green",  "name": "LAST",    "words": ["FINAL", "TAIL", "BUTT", "OMEGA"] },
+        { "tier": "blue",   "name": "GOODBYE", "words": ["ADIEU", "SAYONARA", "FAREWELL", "ALOHA"] },
+        { "tier": "purple", "name": "SHOW",    "words": ["CREDITS", "CURTAIN", "EXIT", "BOW"] }
+      ]
     }
   ]
 }
