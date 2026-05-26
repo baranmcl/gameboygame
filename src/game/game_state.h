@@ -9,7 +9,8 @@ typedef enum {
     SCENE_PLAY,
     SCENE_WIN,
     SCENE_LOSE,
-    SCENE_ALL_DONE
+    SCENE_ALL_DONE,
+    SCENE_PUZZLE_SELECT
 } Scene;
 
 typedef struct {

@@ -14,9 +14,11 @@ extern const SceneVTable SCENE_PLAY_VTABLE;
 extern const SceneVTable SCENE_WIN_VTABLE;
 extern const SceneVTable SCENE_LOSE_VTABLE;
 extern const SceneVTable SCENE_ALL_DONE_VTABLE;
+extern const SceneVTable SCENE_PUZZLE_SELECT_VTABLE;  // v1.2 Phase 7
 
 // Scene table — populated imperatively in main() (see workaround note).
-SceneVTable SCENES[5];
+// v1.2: grew from 5 to 6 to make room for SCENE_PUZZLE_SELECT.
+SceneVTable SCENES[6];
 
 // Global frame counter — used by scenes for time-based logic (cursor blink,
 // elapsed_seconds, etc.). Incremented in VBlank ISR; wraps at 0xFFFF
@@ -26,6 +28,10 @@ volatile uint16_t global_frame_count = 0;
 // Plan C handoff data — PLAY populates before transitioning to WIN.
 // Zero-initialized (acceptable; readers always populate first).
 PuzzleResult last_puzzle_result;
+
+// v1.2 Phase 7 handoff — PUZZLE_SELECT sets this before transitioning
+// to PLAY for replay mode. Sentinel REPLAY_NONE means linear flow.
+uint8_t replay_puzzle_index = REPLAY_NONE;
 
 // VBlank ISR — called by GBDK once per frame (60 Hz on DMG).
 // Runs the per-frame engine-side ticks. Keep this lean: VBlank window
@@ -48,11 +54,12 @@ void main(void) {
     // arrays of structs whose members are function pointers defined in
     // other translation units — populate imperatively to sidestep any
     // initializer-time copy issues.
-    SCENES[SCENE_TITLE]    = SCENE_TITLE_VTABLE;
-    SCENES[SCENE_PLAY]     = SCENE_PLAY_VTABLE;
-    SCENES[SCENE_WIN]      = SCENE_WIN_VTABLE;
-    SCENES[SCENE_LOSE]     = SCENE_LOSE_VTABLE;
-    SCENES[SCENE_ALL_DONE] = SCENE_ALL_DONE_VTABLE;
+    SCENES[SCENE_TITLE]         = SCENE_TITLE_VTABLE;
+    SCENES[SCENE_PLAY]          = SCENE_PLAY_VTABLE;
+    SCENES[SCENE_WIN]           = SCENE_WIN_VTABLE;
+    SCENES[SCENE_LOSE]          = SCENE_LOSE_VTABLE;
+    SCENES[SCENE_ALL_DONE]      = SCENE_ALL_DONE_VTABLE;
+    SCENES[SCENE_PUZZLE_SELECT] = SCENE_PUZZLE_SELECT_VTABLE;
 
     add_VBL(vblank_isr);
 

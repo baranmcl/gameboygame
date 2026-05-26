@@ -22,4 +22,14 @@ typedef struct {
 
 extern PuzzleResult last_puzzle_result;
 
+// v1.2 Phase 7: replay-mode handoff. Set by SCENE_PUZZLE_SELECT before
+// transitioning to SCENE_PLAY. Sentinel REPLAY_NONE = 0xFF means "linear
+// flow, not a replay" — scene_play uses pg_save.current_puzzle_index as
+// the puzzle to load. Any other value is the puzzle index to replay;
+// scene_play uses that puzzle, doesn't advance current_puzzle_index on
+// WIN, doesn't update lifetime/streak stats, and scene_win/lose
+// transition back to SCENE_PUZZLE_SELECT instead of next linear puzzle.
+#define REPLAY_NONE 0xFF
+extern uint8_t replay_puzzle_index;
+
 #endif
