@@ -337,15 +337,24 @@ static void win_update(Scene *next_scene) {
 
     if (input_pressed(BTN_START)) {
         sfx_select();
-        // If we just finished the last puzzle, transition to ALL_DONE
-        // instead of PLAY. NUM_PUZZLES from puzzles_types.h.
-        if (win_save.current_puzzle_index >= NUM_PUZZLES) {
+        // v1.2 Phase 7: replay mode returns to the puzzle-select grid
+        // instead of advancing linear progression. Clear the replay
+        // flag so the subsequent SCENE_PUZZLE_SELECT init starts fresh.
+        if (replay_puzzle_index != REPLAY_NONE) {
+            replay_puzzle_index = REPLAY_NONE;
+            *next_scene = SCENE_PUZZLE_SELECT;
+        } else if (win_save.current_puzzle_index >= NUM_PUZZLES) {
+            // If we just finished the last puzzle, transition to ALL_DONE
+            // instead of PLAY. NUM_PUZZLES from puzzles_types.h.
             *next_scene = SCENE_ALL_DONE;
         } else {
             *next_scene = SCENE_PLAY;
         }
     } else if (input_pressed(BTN_SELECT)) {
         sfx_deselect();
+        // v1.2 Phase 7: SELECT-quit always returns to TITLE; clear the
+        // replay flag so the next session starts in linear mode.
+        replay_puzzle_index = REPLAY_NONE;
         *next_scene = SCENE_TITLE;
     }
 }

@@ -23,6 +23,13 @@ static GameSave   pg_save;
 static LayoutInfo pg_layout;
 static bool       redraw_needed = true;
 static uint16_t   last_second_frame = 0;
+// v1.2 Phase 7: which puzzle this PLAY session is actually playing.
+// In linear mode this equals pg_save.current_puzzle_index. In replay
+// mode (entered from PUZZLE_SELECT), this equals replay_puzzle_index
+// and current_puzzle_index is left alone. Set in play_init from the
+// replay_puzzle_index handoff; all subsequent references use this
+// rather than reading pg_save.current_puzzle_index directly.
+static uint8_t    play_puzzle_idx;
 
 extern volatile uint16_t global_frame_count;
 
@@ -61,7 +68,7 @@ static void update_cursor_sprite(void) {
     // If cursor lands on an already-solved cell (e.g., after a correct
     // submission), hide the sprite — caller should reposition cursor
     // before next render.
-    const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
+    const Puzzle *puzzle = &PUZZLES[play_puzzle_idx];
     if (cell_idx_is_solved(puzzle, ps.cursor_idx)) {
         move_sprite(CURSOR_SPRITE_INDEX, 0, 0);
         return;
@@ -150,23 +157,37 @@ static void play_init(void) {
 
     save_load(&pg_save);
 
-    if (pg_save.ip_tries_remaining > 0) {
-        ps.tries_remaining = pg_save.ip_tries_remaining;
-        ps.groups_solved   = pg_save.ip_groups_solved;
-        ps.selected_mask   = pg_save.ip_selected_mask;
-        ps.elapsed_seconds = pg_save.ip_elapsed_seconds;
-    } else {
+    // v1.2 Phase 7: determine which puzzle to load. Replay mode (set
+    // by PUZZLE_SELECT) overrides the linear current_puzzle_index AND
+    // forces a fresh puzzle state (no in-progress restoration — replays
+    // always start from try 1 with no groups solved). Linear mode
+    // honors the existing in-progress restoration logic.
+    if (replay_puzzle_index != REPLAY_NONE) {
+        play_puzzle_idx = replay_puzzle_index;
         ps.tries_remaining = 4;
         ps.groups_solved   = 0;
         ps.selected_mask   = 0;
         ps.elapsed_seconds = 0;
+    } else {
+        play_puzzle_idx = pg_save.current_puzzle_index;
+        if (pg_save.ip_tries_remaining > 0) {
+            ps.tries_remaining = pg_save.ip_tries_remaining;
+            ps.groups_solved   = pg_save.ip_groups_solved;
+            ps.selected_mask   = pg_save.ip_selected_mask;
+            ps.elapsed_seconds = pg_save.ip_elapsed_seconds;
+        } else {
+            ps.tries_remaining = 4;
+            ps.groups_solved   = 0;
+            ps.selected_mask   = 0;
+            ps.elapsed_seconds = 0;
+        }
     }
     ps.cursor_idx = 0;
     ps.show_quit_confirm = 0;
     // If restoring an in-progress puzzle that already has some groups
     // solved, cursor might land on a solved cell — reposition.
     {
-        const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
+        const Puzzle *puzzle = &PUZZLES[play_puzzle_idx];
         if (cell_idx_is_solved(puzzle, ps.cursor_idx)) {
             reposition_cursor_to_unsolved(puzzle);
         }
@@ -195,7 +216,7 @@ static void play_init(void) {
 static void render_header(void) {
     char hdr[21];
     sprintf(hdr, "P%d  TRIES:%d",
-            (int)pg_save.current_puzzle_index + 1,
+            (int)play_puzzle_idx + 1,
             (int)ps.tries_remaining);
     render_text(0, 0, hdr);
 }
@@ -235,7 +256,7 @@ static void play_render(void) {
     // produced visible flicker on every selection toggle.
     render_clear();
 
-    const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
+    const Puzzle *puzzle = &PUZZLES[play_puzzle_idx];
     render_board(puzzle);
 
     if (ps.show_quit_confirm) {
@@ -252,7 +273,13 @@ static void play_render(void) {
 
 // Helper: write the current in-progress fields to pg_save and save_store.
 // Called at every save-trigger point per spec §4.
+//
+// v1.2 Phase 7: no-op during replay mode. ip_* fields represent the
+// in-progress state of the LINEAR current_puzzle_index — persisting
+// replay state into them would make CONTINUE on TITLE try to resume
+// the wrong puzzle. Replays are transient by design.
 static void save_in_progress(void) {
+    if (replay_puzzle_index != REPLAY_NONE) return;
     pg_save.ip_tries_remaining = ps.tries_remaining;
     pg_save.ip_groups_solved   = ps.groups_solved;
     pg_save.ip_selected_mask   = ps.selected_mask;
@@ -289,7 +316,7 @@ static void play_update(Scene *next_scene) {
         return;
     }
 
-    const Puzzle *puzzle = &PUZZLES[pg_save.current_puzzle_index];
+    const Puzzle *puzzle = &PUZZLES[play_puzzle_idx];
 
     // Cursor nav (slot-based, not absolute cell_idx).
     // After group solves, cells re-pack into a smaller layout (16→12→8→4),
@@ -408,24 +435,24 @@ static void play_update(Scene *next_scene) {
             // Save mid-puzzle state for CONTINUE / hard-reset resume
             save_in_progress();
 
-            // All 4 solved → transition to WIN, updating lifetime stats
+            // All 4 solved → transition to WIN.
             if (ps.groups_solved == 0x0F) {
-                // Plan C: capture per-puzzle stats BEFORE the save
-                // mutations below reset current_puzzle_fails.
+                // Plan C: stats for the WIN scene's typewriter display.
+                // attempt_number is meaningless for replays (current_puzzle_fails
+                // tracks linear failures), so we report 1 in replay mode.
                 last_puzzle_result.tries_used = (uint8_t)(4 - ps.tries_remaining);
                 last_puzzle_result.elapsed_seconds = ps.elapsed_seconds;
                 last_puzzle_result.attempt_number =
-                    (uint8_t)(pg_save.current_puzzle_fails + 1);
+                    (replay_puzzle_index != REPLAY_NONE)
+                        ? 1
+                        : (uint8_t)(pg_save.current_puzzle_fails + 1);
 
-                // v1.2: persist per-puzzle records before the index
-                // advances. Always set the completed bit (idempotent).
-                // Update best_time / best_tries only if this attempt
-                // beats the existing record (sentinel 0 = no record).
-                // NOTE: Phase 7 (replay mode) will swap pg_save.current_puzzle_index
-                // → play_puzzle_idx here so that replays update the
-                // replayed puzzle's records, not the linear-progression one.
+                // v1.2: per-puzzle records are updated UNCONDITIONALLY
+                // (replays can beat your best). Keyed on play_puzzle_idx
+                // so it works for both linear (= current_puzzle_index)
+                // and replay (= replay_puzzle_index) modes.
                 {
-                    uint8_t puzzle_idx = pg_save.current_puzzle_index;
+                    uint8_t puzzle_idx = play_puzzle_idx;
                     uint8_t tries_used = (uint8_t)(4 - ps.tries_remaining);
                     if (puzzle_idx < MAX_PUZZLES_SUPPORTED) {
                         pg_save.completed_bits[puzzle_idx >> 3] |=
@@ -442,20 +469,26 @@ static void play_update(Scene *next_scene) {
                     }
                 }
 
-                pg_save.puzzles_solved_total++;
-                pg_save.current_streak++;
-                if (pg_save.current_streak > pg_save.best_streak) {
-                    pg_save.best_streak = pg_save.current_streak;
+                // v1.2 Phase 7: linear-only state mutations. Replays
+                // don't count toward lifetime stats, streak, or linear
+                // progression — they're discretionary actions that
+                // should be invisible to the linear playthrough.
+                if (replay_puzzle_index == REPLAY_NONE) {
+                    pg_save.puzzles_solved_total++;
+                    pg_save.current_streak++;
+                    if (pg_save.current_streak > pg_save.best_streak) {
+                        pg_save.best_streak = pg_save.current_streak;
+                    }
+                    pg_save.total_tries_used = (uint16_t)(
+                        pg_save.total_tries_used + (4 - ps.tries_remaining));
+                    pg_save.current_puzzle_index++;
+                    pg_save.current_puzzle_fails = 0;
+                    // Clear in-progress
+                    pg_save.ip_tries_remaining = 0;
+                    pg_save.ip_groups_solved   = 0;
+                    pg_save.ip_selected_mask   = 0;
+                    pg_save.ip_elapsed_seconds = 0;
                 }
-                pg_save.total_tries_used = (uint16_t)(
-                    pg_save.total_tries_used + (4 - ps.tries_remaining));
-                pg_save.current_puzzle_index++;
-                pg_save.current_puzzle_fails = 0;
-                // Clear in-progress
-                pg_save.ip_tries_remaining = 0;
-                pg_save.ip_groups_solved   = 0;
-                pg_save.ip_selected_mask   = 0;
-                pg_save.ip_elapsed_seconds = 0;
                 save_store(&pg_save);
 
                 *next_scene = SCENE_WIN;
@@ -478,7 +511,13 @@ static void play_update(Scene *next_scene) {
             save_in_progress();
 
             if (ps.tries_remaining == 0) {
-                pg_save.current_puzzle_fails++;
+                // v1.2 Phase 7: don't tick fails on linear puzzle when
+                // we're really in a replay session. ip_* clears are
+                // safe to fire either way (no-op on replays since ip_*
+                // was already 0).
+                if (replay_puzzle_index == REPLAY_NONE) {
+                    pg_save.current_puzzle_fails++;
+                }
                 pg_save.ip_tries_remaining = 0;
                 pg_save.ip_groups_solved   = 0;
                 pg_save.ip_selected_mask   = 0;

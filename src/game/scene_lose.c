@@ -1,6 +1,7 @@
 #include "scene.h"
 #include "game_state.h"
 #include "puzzles_types.h"
+#include "scene_handoff.h"
 #include "../engine/render.h"
 #include "../engine/input.h"
 #include "../engine/save.h"
@@ -185,21 +186,36 @@ static void lose_update(Scene *next_scene) {
 
     if (input_pressed(BTN_A) || input_pressed(BTN_START)) {
         if (lose_menu_cursor == 0) {
-            // RETRY — no save change needed (ip_* already cleared on PLAY→LOSE)
+            // RETRY — restart same puzzle. In replay mode, stays in replay
+            // (replay_puzzle_index unchanged) so scene_play re-loads the
+            // same replayed puzzle. In linear, just re-enters PLAY normally.
+            // No save change needed either way (ip_* already cleared).
             sfx_select();
             *next_scene = SCENE_PLAY;
         } else {
-            // SKIP — advance puzzle, reset streak, increment skip counter
-            lose_save.current_puzzle_index++;
-            lose_save.current_streak = 0;
-            lose_save.puzzles_skipped_total++;
-            lose_save.current_puzzle_fails = 0;
-            save_store(&lose_save);
-            sfx_skip();
-            *next_scene = SCENE_PLAY;
+            // SKIP — only meaningful in linear mode. In replay, SKIP
+            // is a discretionary "give up on this replay" → return to
+            // puzzle-select without mutating any linear state.
+            if (replay_puzzle_index != REPLAY_NONE) {
+                sfx_skip();
+                replay_puzzle_index = REPLAY_NONE;
+                *next_scene = SCENE_PUZZLE_SELECT;
+            } else {
+                // Linear SKIP — advance puzzle, reset streak, increment counter.
+                lose_save.current_puzzle_index++;
+                lose_save.current_streak = 0;
+                lose_save.puzzles_skipped_total++;
+                lose_save.current_puzzle_fails = 0;
+                save_store(&lose_save);
+                sfx_skip();
+                *next_scene = SCENE_PLAY;
+            }
         }
     } else if (input_pressed(BTN_SELECT)) {
         sfx_deselect();
+        // v1.2 Phase 7: SELECT-quit always returns to TITLE; clear
+        // replay flag so the next session starts in linear mode.
+        replay_puzzle_index = REPLAY_NONE;
         *next_scene = SCENE_TITLE;
     }
 }
