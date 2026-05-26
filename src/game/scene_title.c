@@ -1,5 +1,8 @@
 #include "scene.h"
 #include "title_theme.h"
+#include "game_state.h"
+#include "puzzles_types.h"
+#include "scene_handoff.h"
 #include "../engine/render.h"
 #include "../engine/input.h"
 #include "../engine/save.h"
@@ -20,8 +23,10 @@ typedef struct {
     GameSave save;
     bool     has_in_progress;     // ip_tries_remaining > 0
     bool     has_any_progress;    // any history at all (solved/skipped/index)
+    bool     has_any_completed;   // v1.2: any bit in completed_bits set
     uint8_t  menu_cursor;
-    uint8_t  menu_item_count;     // 1 (fresh) / 2 (returning) / 3 (mid-puzzle)
+    uint8_t  menu_item_count;     // 1 (fresh) / 2 (returning) / 3 (mid-puzzle) +1 each if PUZZLES visible
+    uint8_t  puzzles_cursor_idx;  // v1.2: menu_cursor value that selects PUZZLES (0xFF if hidden)
     bool     show_confirm;        // NEW GAME confirm overlay
     bool     redraw_needed;       // gates re-render to avoid every-frame flicker
 } TitleState;
@@ -40,6 +45,18 @@ static void title_init(void) {
         || (ts.save.puzzles_solved_total > 0)
         || (ts.save.puzzles_skipped_total > 0);
 
+    // v1.2 Phase 7: PUZZLES menu option visible iff any bit in
+    // completed_bits is set. Requires has_any_progress (you can't have
+    // a completed puzzle without progress), so the fresh-save path
+    // never shows PUZZLES.
+    ts.has_any_completed = false;
+    for (uint8_t i = 0; i < (MAX_PUZZLES_SUPPORTED / 8); i++) {
+        if (ts.save.completed_bits[i] != 0) {
+            ts.has_any_completed = true;
+            break;
+        }
+    }
+
     ts.menu_cursor = 0;
     if (ts.has_in_progress) {
         ts.menu_item_count = 3;   // CONTINUE / RESTART / NEW GAME
@@ -48,6 +65,15 @@ static void title_init(void) {
     } else {
         ts.menu_item_count = 1;   // NEW GAME only
     }
+    // PUZZLES is always the LAST item if visible. Its cursor index is
+    // the current item count; then bump item count by 1.
+    if (ts.has_any_completed) {
+        ts.puzzles_cursor_idx = ts.menu_item_count;
+        ts.menu_item_count++;
+    } else {
+        ts.puzzles_cursor_idx = 0xFF;
+    }
+
     ts.show_confirm = false;
     ts.redraw_needed = true;
     // Default tile layout (font + UI) is already loaded by render_init()
@@ -136,6 +162,16 @@ static void title_render(void) {
         render_text(2, row + 0, buf);
     }
 
+    // v1.2 Phase 7: PUZZLES menu line, displayed below the existing
+    // items. Its row depends on how many items appeared above it,
+    // captured at init time as puzzles_cursor_idx (= row offset).
+    if (ts.has_any_completed) {
+        buf[0] = (ts.menu_cursor == ts.puzzles_cursor_idx) ? '>' : ' ';
+        buf[1] = 'P'; buf[2] = 'U'; buf[3] = 'Z'; buf[4] = 'Z'; buf[5] = 'L';
+        buf[6] = 'E'; buf[7] = 'S'; buf[8] = 0;
+        render_text(2, (uint8_t)(row + ts.puzzles_cursor_idx), buf);
+    }
+
     sprintf(buf, "SOLVED:%d  BEST:%d",
             (int)ts.save.puzzles_solved_total,
             (int)ts.save.best_streak);
@@ -174,6 +210,15 @@ static void title_update(Scene *next_scene) {
 
     // Selection
     if (input_pressed(BTN_A) || input_pressed(BTN_START)) {
+        // v1.2 Phase 7: PUZZLES handler — checked first since it sits
+        // at the highest cursor index in every menu variant.
+        if (ts.has_any_completed && ts.menu_cursor == ts.puzzles_cursor_idx) {
+            sfx_select();
+            replay_puzzle_index = REPLAY_NONE;  // defensive: ensure clean state
+            *next_scene = SCENE_PUZZLE_SELECT;
+            return;
+        }
+
         if (ts.has_in_progress) {
             // 3-item menu: CONTINUE / RESTART / NEW GAME
             if (ts.menu_cursor == 0) {
