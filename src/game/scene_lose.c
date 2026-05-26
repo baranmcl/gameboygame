@@ -15,27 +15,37 @@ static uint8_t  lose_menu_cursor;
 static bool     lose_skip_available;   // true if current_puzzle_fails >= 3
 static uint8_t  reveal_step;            // 0..4 — current bar being revealed
 static uint16_t reveal_start_frame;     // global_frame_count snapshot at init
+static uint8_t  slide_cols;             // v1.2: 0..20, columns of the currently-sliding bar painted
 static bool     redraw_needed;
 
 extern volatile uint16_t global_frame_count;
 
-static void render_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y) {
-    // Same shape as scene_win's render_bar; Plan C overlays category name.
+// v1.2 Phase 2: reveal_cols parameter for slide-in animation (matches
+// scene_win's render_bar). Full reveal = SCREEN_TILES_W; partial reveal
+// paints only the leftmost columns + skips name + skips palette.
+static void render_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y, uint8_t reveal_cols) {
     uint8_t pattern_tile = (uint8_t)(UI_TILE_PATTERN_BASE + tier);
-    for (uint8_t x = 0; x < 3; x++)   render_set_tile(x, y, pattern_tile);
-    for (uint8_t x = 17; x < 20; x++) render_set_tile(x, y, pattern_tile);
-    for (uint8_t x = 3; x < 17; x++)  render_set_tile(x, y, UI_TILE_SOLID_DARK);
+    for (uint8_t x = 0; x < 3; x++) {
+        if (x < reveal_cols) render_set_tile(x, y, pattern_tile);
+    }
+    for (uint8_t x = 17; x < 20; x++) {
+        if (x < reveal_cols) render_set_tile(x, y, pattern_tile);
+    }
+    for (uint8_t x = 3; x < 17; x++) {
+        if (x < reveal_cols) render_set_tile(x, y, UI_TILE_SOLID_DARK);
+    }
 
-    const char *name = puzzle->category_names[tier];
-    uint8_t name_len = 0;
-    while (name[name_len] && name_len < 14) name_len++;
-    uint8_t text_x = (uint8_t)(3 + (14 - name_len) / 2);
-    render_text_inv(text_x, y, name);
+    if (reveal_cols >= SCREEN_TILES_W) {
+        const char *name = puzzle->category_names[tier];
+        uint8_t name_len = 0;
+        while (name[name_len] && name_len < 14) name_len++;
+        uint8_t text_x = (uint8_t)(3 + (14 - name_len) / 2);
+        render_text_inv(text_x, y, name);
 
-    // Plan D Phase 3: same tier-color palette write as scene_play / scene_win.
-    uint8_t palette = (uint8_t)(GBC_PAL_TIER_YELLOW + tier);
-    for (uint8_t x = 0; x < SCREEN_TILES_W; x++) {
-        render_set_tile_palette(x, y, palette);
+        uint8_t palette = (uint8_t)(GBC_PAL_TIER_YELLOW + tier);
+        for (uint8_t x = 0; x < SCREEN_TILES_W; x++) {
+            render_set_tile_palette(x, y, palette);
+        }
     }
 }
 
@@ -46,6 +56,7 @@ static void lose_init(void) {
     lose_skip_available = (lose_save.current_puzzle_fails >= 3);
     reveal_step = 0;
     reveal_start_frame = global_frame_count;
+    slide_cols = 0;
     redraw_needed = true;
     sfx_lose();
     // Same shape as BAR_CASCADE — 4 bars × 20 frames each = 80 frames.
@@ -60,10 +71,14 @@ static void lose_render(void) {
     render_clear();
     render_text(3, 1, "OUT OF TRIES");
 
-    // Reveal bars 0..reveal_step-1 (tiers 0=yellow .. 3=purple)
+    // Reveal bars 0..reveal_step-1 (tiers 0=yellow .. 3=purple) at full width.
     const Puzzle *puzzle = &PUZZLES[lose_save.current_puzzle_index];
     for (uint8_t i = 0; i < 4 && i < reveal_step; i++) {
-        render_bar(puzzle, i, (uint8_t)(3 + i));
+        render_bar(puzzle, i, (uint8_t)(3 + i), SCREEN_TILES_W);
+    }
+    // v1.2 Phase 2: the currently-sliding bar (if cascade still in progress).
+    if (reveal_step < 4 && slide_cols > 0) {
+        render_bar(puzzle, reveal_step, (uint8_t)(3 + reveal_step), slide_cols);
     }
 
     if (reveal_step >= 4) {
@@ -94,7 +109,25 @@ static void lose_update(Scene *next_scene) {
         if (expected_step > 4) expected_step = 4;
         if (expected_step != reveal_step) {
             reveal_step = expected_step;
+            slide_cols = 0;  // next bar's slide-in starts fresh
             redraw_needed = true;
+        }
+
+        // v1.2 Phase 2: drive slide_cols for the currently-revealing bar.
+        // Same 5-frames-of-slide-in + 15-frames-fully-revealed pattern as
+        // scene_win. Only animate if there's still a bar in progress.
+        if (reveal_step < 4) {
+            uint16_t bar_local = (uint16_t)(elapsed % 20);
+            uint8_t new_slide;
+            if (bar_local < 5) {
+                new_slide = (uint8_t)((bar_local + 1) * 4);
+            } else {
+                new_slide = SCREEN_TILES_W;
+            }
+            if (new_slide != slide_cols) {
+                slide_cols = new_slide;
+                redraw_needed = true;
+            }
         }
         return;
     }
