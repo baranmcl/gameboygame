@@ -172,9 +172,12 @@ static void ps_render_focused_stats(void) {
     if (is_completed) {
         uint16_t bt = ps_save.puzzle_best_time[p];
         uint8_t  bg = ps_save.puzzle_best_tries[p];
-        if (bt == 0 || bg == 0) {
-            // Sentinel: migrated v1 save had this puzzle completed but
-            // no per-puzzle record was captured. Show "no record" hint.
+        // best_time is the SOLE sentinel for "no record" — best_tries
+        // can legitimately be 0 (perfect game with no wrong submissions).
+        // best_time can't realistically be 0 since elapsed_seconds
+        // increments every 60 frames and reading/selecting 4 words
+        // takes longer than 1/60s.
+        if (bt == 0) {
             render_text(2, 15, "BEST: --");
         } else {
             uint16_t mins = (uint16_t)(bt / 60);

@@ -451,6 +451,11 @@ static void play_update(Scene *next_scene) {
                 // (replays can beat your best). Keyed on play_puzzle_idx
                 // so it works for both linear (= current_puzzle_index)
                 // and replay (= replay_puzzle_index) modes.
+                //
+                // best_time is the SOLE sentinel for "no record yet"
+                // (= 0). best_tries CAN legitimately be 0 (perfect game,
+                // 0 wrong submissions) so using it as sentinel collided
+                // with the best-case data — fixed in v1.2.7.5.
                 {
                     uint8_t puzzle_idx = play_puzzle_idx;
                     uint8_t tries_used = (uint8_t)(4 - ps.tries_remaining);
@@ -458,12 +463,11 @@ static void play_update(Scene *next_scene) {
                         pg_save.completed_bits[puzzle_idx >> 3] |=
                             (uint8_t)(1u << (puzzle_idx & 7));
 
-                        if (pg_save.puzzle_best_time[puzzle_idx] == 0
-                         || ps.elapsed_seconds < pg_save.puzzle_best_time[puzzle_idx]) {
+                        bool first_record = (pg_save.puzzle_best_time[puzzle_idx] == 0);
+                        if (first_record || ps.elapsed_seconds < pg_save.puzzle_best_time[puzzle_idx]) {
                             pg_save.puzzle_best_time[puzzle_idx] = ps.elapsed_seconds;
                         }
-                        if (pg_save.puzzle_best_tries[puzzle_idx] == 0
-                         || tries_used < pg_save.puzzle_best_tries[puzzle_idx]) {
+                        if (first_record || tries_used < pg_save.puzzle_best_tries[puzzle_idx]) {
                             pg_save.puzzle_best_tries[puzzle_idx] = tries_used;
                         }
                     }

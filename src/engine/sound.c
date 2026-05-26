@@ -120,13 +120,16 @@ void sfx_deselect(void) {
 }
 
 void sfx_reject(void) {
-    // CH4 noise. Volume slashed from 15 → 4 — the previous setting was
-    // the abrasive sound the user flagged. NR43 = 0x77 gives a slower,
-    // 15-bit (less metallic) noise pattern. Now reads as a soft "thunk"
-    // instead of harsh static.
+    // CH4 noise. Tuned across multiple iterations:
+    //   v1.0:  vol 15 + harsh metallic — abrasive (user-flagged)
+    //   v1.1:  vol 4 + slow deep rumble — too subtle in quiet menus
+    //          (PUZZLE_SELECT, where it was inaudible per user)
+    //   v1.2:  vol 6 + mid-freq smooth (15-bit) — audible everywhere
+    //          but still not harsh. Sits between the original abrasive
+    //          and the over-soft v1.1.
     NR41_REG = 0x00;
-    NR42_REG = 0x43;
-    NR43_REG = 0x77;
+    NR42_REG = 0x63;   // vol 6 (up from 4), decay, step 3
+    NR43_REG = 0x44;   // shift clock 4, 15-bit smooth, divisor 4 — mid-freq
     NR44_REG = 0x80;
     active = SFX_NONE;
 }
