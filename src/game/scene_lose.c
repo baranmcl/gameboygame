@@ -16,6 +16,16 @@ static bool     lose_skip_available;   // true if current_puzzle_fails >= 3
 static uint8_t  reveal_step;            // 0..4 — current bar being revealed
 static uint16_t reveal_start_frame;     // global_frame_count snapshot at init
 static uint8_t  slide_cols;             // v1.2: 0..20, columns of the currently-sliding bar painted
+// v1.2 Phase 2 (refactor): incremental-render trackers. Same anti-flicker
+// pattern as scene_win — render_clear is one-shot in lose_init; lose_render
+// only paints DELTAS so the tilemap buffer stays in a valid state at every
+// frame (no VBlank race that would expose a half-cleared buffer to the
+// LCD). Without these, the slide_cols animation (5x as many redraws as
+// the v1.1 bar reveal) triggered visible per-frame screen flashes.
+static uint8_t  last_rendered_reveal_step;
+static uint8_t  last_rendered_slide_cols;
+static bool     menu_rendered;            // one-shot: paint static menu chrome (ATTEMPT, SELECT TITLE) once when reveal completes
+static uint8_t  last_rendered_menu_cursor; // diff against lose_menu_cursor for the > marker
 static bool     redraw_needed;
 
 extern volatile uint16_t global_frame_count;
@@ -57,8 +67,20 @@ static void lose_init(void) {
     reveal_step = 0;
     reveal_start_frame = global_frame_count;
     slide_cols = 0;
-    redraw_needed = true;
+    last_rendered_reveal_step = 0;
+    last_rendered_slide_cols = 0;
+    menu_rendered = false;
+    last_rendered_menu_cursor = 0xFF;  // sentinel — forces first menu paint
+    redraw_needed = false;             // lose_render is now purely additive
     sfx_lose();
+
+    // v1.2 Phase 2 (refactor): clear + paint the persistent header HERE.
+    // lose_render below is purely additive (no render_clear in the hot
+    // path) — needed to avoid VBlank racing the slide animation's
+    // ~20 redraws.
+    render_clear();
+    render_text(3, 1, "OUT OF TRIES");
+
     // Same shape as BAR_CASCADE — 4 bars × 20 frames each = 80 frames.
     // Engine just counts frames; scene_lose advances reveal_step.
     anim_start(ANIM_LOSE_REVEAL, 0, 80);
@@ -68,32 +90,47 @@ static void lose_render(void) {
     if (!redraw_needed) return;
     redraw_needed = false;
 
-    render_clear();
-    render_text(3, 1, "OUT OF TRIES");
-
-    // Reveal bars 0..reveal_step-1 (tiers 0=yellow .. 3=purple) at full width.
     const Puzzle *puzzle = &PUZZLES[lose_save.current_puzzle_index];
-    for (uint8_t i = 0; i < 4 && i < reveal_step; i++) {
-        render_bar(puzzle, i, (uint8_t)(3 + i), SCREEN_TILES_W);
-    }
-    // v1.2 Phase 2: the currently-sliding bar (if cascade still in progress).
-    if (reveal_step < 4 && slide_cols > 0) {
-        render_bar(puzzle, reveal_step, (uint8_t)(3 + reveal_step), slide_cols);
+
+    // Paint any NEWLY-fully-revealed bars (one per redraw step typically).
+    while (last_rendered_reveal_step < reveal_step
+        && last_rendered_reveal_step < 4) {
+        render_bar(puzzle, last_rendered_reveal_step,
+                   (uint8_t)(3 + last_rendered_reveal_step),
+                   SCREEN_TILES_W);
+        last_rendered_reveal_step++;
+        last_rendered_slide_cols = 0;  // next bar slides in fresh
     }
 
-    if (reveal_step >= 4) {
+    // The currently-sliding bar (if cascade still in progress).
+    if (reveal_step < 4 && last_rendered_slide_cols != slide_cols) {
+        render_bar(puzzle, reveal_step,
+                   (uint8_t)(3 + reveal_step),
+                   slide_cols);
+        last_rendered_slide_cols = slide_cols;
+    }
+
+    // Once all 4 bars revealed: paint the static menu chrome ONCE
+    // (ATTEMPT line + SELECT TITLE hint), then handle menu cursor
+    // updates incrementally below.
+    if (reveal_step >= 4 && !menu_rendered) {
         char buf[21];
         sprintf(buf, "ATTEMPT: %d", (int)lose_save.current_puzzle_fails);
         render_text(2, 9, buf);
+        render_text(2, 16, "SELECT TITLE");
+        menu_rendered = true;
+    }
 
-        // Menu (RETRY always; SKIP only if fails >= 3). Use ternary on
-        // full string literals to sidestep the SDCC %c sprintf bug.
+    // Menu cursor lines re-paint whenever the cursor moves OR when the
+    // menu first appears. We always paint both RETRY and SKIP rows when
+    // dirty — overwriting the existing 13-char line in place (same length
+    // every time, no clearing needed). SKIP only painted if available.
+    if (reveal_step >= 4 && last_rendered_menu_cursor != lose_menu_cursor) {
         render_text(2, 12, (lose_menu_cursor == 0) ? ">RETRY PUZZLE" : " RETRY PUZZLE");
         if (lose_skip_available) {
             render_text(2, 13, (lose_menu_cursor == 1) ? ">SKIP PUZZLE" : " SKIP PUZZLE");
         }
-
-        render_text(2, 16, "SELECT TITLE");
+        last_rendered_menu_cursor = lose_menu_cursor;
     }
 }
 
