@@ -269,6 +269,96 @@
         { "tier": "blue",   "name": "TREASURE", "words": ["GOLD", "JEWELS", "MAP", "DOUBLOON"] },
         { "tier": "purple", "name": "ONBOARD",  "words": ["PLANK", "MAST", "DECK", "CREW"] }
       ]
+    },
+    {
+      "id": 31,
+      "categories": [
+        { "tier": "yellow", "name": "CREATURES", "words": ["WITCH", "GHOST", "MUMMY", "ZOMBIE"] },
+        { "tier": "green",  "name": "CANDIES",   "words": ["TAFFY", "CARAMEL", "GUMMY", "FUDGE"] },
+        { "tier": "blue",   "name": "COSTUMES",  "words": ["CAPE", "MASK", "WIG", "FANGS"] },
+        { "tier": "purple", "name": "HAUNTS",    "words": ["CRYPT", "ATTIC", "MANOR", "GRAVE"] }
+      ]
+    },
+    {
+      "id": 32,
+      "categories": [
+        { "tier": "yellow", "name": "MAMMALS",   "words": ["WHALE", "DOLPHIN", "SEAL", "OTTER"] },
+        { "tier": "green",  "name": "FISH",      "words": ["TUNA", "SALMON", "BASS", "COD"] },
+        { "tier": "blue",   "name": "SHELLED",   "words": ["CRAB", "CLAM", "SNAIL", "OYSTER"] },
+        { "tier": "purple", "name": "TENTACLED", "words": ["SQUID", "OCTOPUS", "JELLY", "ANEMONE"] }
+      ]
+    },
+    {
+      "id": 33,
+      "categories": [
+        { "tier": "yellow", "name": "LANGUAGES", "words": ["ENGLISH", "FRENCH", "SPANISH", "JAPANESE"] },
+        { "tier": "green",  "name": "HELLOS",    "words": ["HOLA", "HELLO", "BONJOUR", "ALOHA"] },
+        { "tier": "blue",   "name": "GOODBYES",  "words": ["BYE", "ADIOS", "CIAO", "GOODBYE"] },
+        { "tier": "purple", "name": "THANKS",    "words": ["GRACIAS", "MERCI", "DANKE", "ARIGATO"] }
+      ]
+    },
+    {
+      "id": 34,
+      "categories": [
+        { "tier": "yellow", "name": "APPLIANCES", "words": ["STOVE", "OVEN", "FRIDGE", "TOASTER"] },
+        { "tier": "green",  "name": "UTENSILS",   "words": ["SPOON", "FORK", "KNIFE", "LADLE"] },
+        { "tier": "blue",   "name": "COOKWARE",   "words": ["PAN", "POT", "SKILLET", "WOK"] },
+        { "tier": "purple", "name": "BAKEWARE",   "words": ["TRAY", "MOLD", "RACK", "TIN"] }
+      ]
+    },
+    {
+      "id": 35,
+      "categories": [
+        { "tier": "yellow", "name": "FIXTURES", "words": ["TUB", "SINK", "TOILET", "SHOWER"] },
+        { "tier": "green",  "name": "CLEANING", "words": ["SOAP", "SHAMPOO", "BRUSH", "COMB"] },
+        { "tier": "blue",   "name": "TOWELS",   "words": ["BATH", "HAND", "FACE", "BEACH"] },
+        { "tier": "purple", "name": "SUPPLIES", "words": ["PAPER", "TISSUE", "LOTION", "RAZOR"] }
+      ]
+    },
+    {
+      "id": 36,
+      "categories": [
+        { "tier": "yellow", "name": "RAPTORS",   "words": ["HAWK", "EAGLE", "FALCON", "OWL"] },
+        { "tier": "green",  "name": "WATERFOWL", "words": ["DUCK", "GOOSE", "SWAN", "GULL"] },
+        { "tier": "blue",   "name": "TROPICAL",  "words": ["PARROT", "TOUCAN", "MACAW", "FLAMINGO"] },
+        { "tier": "purple", "name": "SONGBIRDS", "words": ["ROBIN", "SPARROW", "WREN", "JAY"] }
+      ]
+    },
+    {
+      "id": 37,
+      "categories": [
+        { "tier": "yellow", "name": "WATER",  "words": ["SWIM", "DIVE", "SURF", "ROW"] },
+        { "tier": "green",  "name": "WINTER", "words": ["SKI", "SLED", "SKATE", "CURL"] },
+        { "tier": "blue",   "name": "COMBAT", "words": ["BOX", "KARATE", "JUDO", "KUNGFU"] },
+        { "tier": "purple", "name": "THROW",  "words": ["SHOT", "DISCUS", "JAVELIN", "HAMMER"] }
+      ]
+    },
+    {
+      "id": 38,
+      "categories": [
+        { "tier": "yellow", "name": "MAJOR", "words": ["DOLLAR", "EURO", "YEN", "POUND"] },
+        { "tier": "green",  "name": "SLANG", "words": ["BUCK", "DOUGH", "CASH", "COIN"] },
+        { "tier": "blue",   "name": "COINS", "words": ["PENNY", "NICKEL", "DIME", "QUARTER"] },
+        { "tier": "purple", "name": "OLD",   "words": ["SHILLING", "DUCAT", "GUINEA", "FRANC"] }
+      ]
+    },
+    {
+      "id": 39,
+      "categories": [
+        { "tier": "yellow", "name": "HOMES", "words": ["HOUSE", "CONDO", "CABIN", "MANSION"] },
+        { "tier": "green",  "name": "BIG",   "words": ["TOWER", "CASTLE", "PALACE", "FORTRESS"] },
+        { "tier": "blue",   "name": "WORK",  "words": ["STUDIO", "FACTORY", "SHOP", "BARN"] },
+        { "tier": "purple", "name": "CITY",  "words": ["HOTEL", "BANK", "STORE", "THEATER"] }
+      ]
+    },
+    {
+      "id": 40,
+      "categories": [
+        { "tier": "yellow", "name": "CAMPING", "words": ["TENT", "FIRE", "ROAST", "SLEEP"] },
+        { "tier": "green",  "name": "HIKING",  "words": ["TRAIL", "BACKPACK", "MAP", "COMPASS"] },
+        { "tier": "blue",   "name": "FISHING", "words": ["ROD", "BAIT", "REEL", "NET"] },
+        { "tier": "purple", "name": "BIRDING", "words": ["SCOPE", "GUIDE", "NEST", "FLIGHT"] }
+      ]
     }
   ]
 }
