@@ -29,6 +29,16 @@
 
 #define MUSIC_NOTE_COUNT 15
 
+// v1.2: drum types for the CH4 noise channel. CH4 has no concept of
+// "note pitch" — instead these enum values map to preset NR42 (envelope)
+// + NR43 (noise control) values in music.c. Use MUSIC_DRUM_REST to
+// leave CH4 silent for a given step.
+#define MUSIC_DRUM_REST  0
+#define MUSIC_DRUM_KICK  1
+#define MUSIC_DRUM_SNARE 2
+
+#define MUSIC_DRUM_COUNT 3
+
 // One step of a track: play `note` for `duration_frames` frames (60 Hz),
 // then advance to the next step. note == MUSIC_NOTE_REST silences CH1
 // for the duration.
@@ -47,9 +57,14 @@ typedef struct {
 // be `length` elements long; CH2 note transitions happen at the same
 // frame boundaries as CH1 (lockstep). Each entry is a MUSIC_NOTE_*
 // value (or MUSIC_NOTE_REST to silence CH2 for that step).
+//
+// v1.2: ch4_drums is an optional parallel array providing a CH4 (noise)
+// drum voice. Same lockstep behavior — drum hits trigger at CH1 step
+// boundaries. Each entry is a MUSIC_DRUM_* value (KICK/SNARE/REST).
 typedef struct {
     const MusicStep *steps;
     const uint8_t   *ch2_notes;
+    const uint8_t   *ch4_drums;
     uint8_t          length;
     uint8_t          loop_start;
 } MusicTrack;

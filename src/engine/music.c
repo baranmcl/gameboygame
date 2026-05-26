@@ -58,6 +58,53 @@ static void emit_note(uint8_t note) {
 #endif
 }
 
+// v1.2: emit a drum hit on CH4 (noise channel). CH4 has no concept of
+// "note pitch" — each drum type maps to a fixed (envelope, noise-control)
+// pair tuned by ear (v1.2.5b adjustments per user feedback: kick volume
+// down + decay slowed for smoother feel; snare decay sped up for shorter
+// sustain).
+//
+//   KICK: lower-frequency noise with gradual decay → "soft thump"
+//         NR42 = 0x53 (vol 5, decay, step 3 — was vol 8 step 2)
+//         NR43 = 0x64 (shift clock 6, 15-bit smooth pattern, divisor 4)
+//
+//   SNARE: mid-frequency noise, snap-and-end → "tight snap"
+//         NR42 = 0x51 (vol 5, decay, step 1 — was step 3)
+//         NR43 = 0x33 (shift clock 3, 15-bit, divisor 3)
+//
+//   REST: silence CH4 by zeroing envelope
+//
+// On host (gcc) the body is compiled out — register macros aren't
+// available; state machine timing is what we want host-tested.
+static void emit_drum(uint8_t drum) {
+#ifdef __SDCC
+    if (drum == MUSIC_DRUM_REST) {
+        NR42_REG = 0x00;
+        NR44_REG = 0x80;
+        return;
+    }
+    if (drum == MUSIC_DRUM_KICK) {
+        NR41_REG = 0x00;
+        NR42_REG = 0x53;
+        NR43_REG = 0x64;
+        NR44_REG = 0x80;
+        return;
+    }
+    if (drum == MUSIC_DRUM_SNARE) {
+        NR41_REG = 0x00;
+        NR42_REG = 0x51;
+        NR43_REG = 0x33;
+        NR44_REG = 0x80;
+        return;
+    }
+    // Unknown drum type — silence (defensive).
+    NR42_REG = 0x00;
+    NR44_REG = 0x80;
+#else
+    (void)drum;
+#endif
+}
+
 // v1.2: emit a CH2 harmony note. Mirrors emit_note but uses NR2x
 // registers (CH2 has no frequency sweep — no equivalent of NR10).
 // Volume one tier lower than CH1 (5 vs 6) so the harmony sits below
@@ -98,6 +145,10 @@ void music_play(const MusicTrack *track) {
     if (track->ch2_notes) {
         emit_note_ch2(track->ch2_notes[0]);
     }
+    // v1.2: emit the lockstep CH4 drum if the track has a drum layer.
+    if (track->ch4_drums) {
+        emit_drum(track->ch4_drums[0]);
+    }
 }
 
 void music_stop(void) {
@@ -106,6 +157,7 @@ void music_stop(void) {
     frames_remaining = 0;
     emit_note(MUSIC_NOTE_REST);
     emit_note_ch2(MUSIC_NOTE_REST);  // also silence CH2 (no-op if never used)
+    emit_drum(MUSIC_DRUM_REST);      // also silence CH4 (no-op if never used)
 }
 
 void music_tick(void) {
@@ -131,6 +183,10 @@ void music_tick(void) {
     // v1.2: lockstep CH2 advance — same step boundary, same frame.
     if (active_track->ch2_notes) {
         emit_note_ch2(active_track->ch2_notes[next_idx]);
+    }
+    // v1.2: lockstep CH4 drum advance — same step boundary.
+    if (active_track->ch4_drums) {
+        emit_drum(active_track->ch4_drums[next_idx]);
     }
 }
 
