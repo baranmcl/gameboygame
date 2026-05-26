@@ -23,10 +23,16 @@ static uint8_t  slide_cols;                  // v1.2: 0..20, columns of the curr
 static uint8_t  last_rendered_slide_cols;    // diff against slide_cols for the in-progress bar
 // v1.2 Phase 3: tiered milestones. Set in win_init from the loaded save.
 // Rendered AFTER the stats typewriter completes (replaces the standard
-// menu hints at rows 16-17 when active). Streak wins priority when both
-// hit on the same WIN — bigger achievement, single visual.
+// menu hints at rows 16-17 when active). Streak wins priority over
+// lifetime when both hit on the same WIN.
+//
+// all_puzzles_done is a third class that layers ON TOP of the streak/
+// lifetime celebration — when the player completes the last uncompleted
+// puzzle in the bank, "ALL PUZZLES DONE!" appears on row 15 above the
+// other milestone (or stands alone on row 16 if no streak/lifetime hit).
 static bool     milestone_lifetime_hit;
 static bool     milestone_streak_hit;
+static bool     all_puzzles_done;             // count(completed_bits) == NUM_PUZZLES
 static bool     milestone_displayed;          // one-shot: text painted
 static bool     milestone_fanfare_played;     // one-shot: SFX fired
 static bool     redraw_needed;
@@ -89,6 +95,25 @@ static void win_init(void) {
                            && (win_save.puzzles_solved_total % 5) == 0);
     milestone_streak_hit   = (win_save.current_streak > 0
                            && (win_save.current_streak % 5) == 0);
+
+    // all_puzzles_done: count bits in completed_bits and compare to
+    // NUM_PUZZLES. Bit count caps at NUM_PUZZLES (each puzzle has one
+    // bit), so this cleanly answers "every puzzle done?" regardless
+    // of how the player got there (linear, replay, mixed). Doesn't
+    // use puzzles_solved_total because cycle-restart can push that
+    // past NUM_PUZZLES.
+    {
+        uint8_t bit_count = 0;
+        for (uint8_t i = 0; i < (MAX_PUZZLES_SUPPORTED / 8); i++) {
+            uint8_t byte = win_save.completed_bits[i];
+            while (byte) {
+                bit_count += (uint8_t)(byte & 1);
+                byte >>= 1;
+            }
+        }
+        all_puzzles_done = (bit_count >= NUM_PUZZLES);
+    }
+
     milestone_displayed      = false;
     milestone_fanfare_played = false;
 
@@ -175,12 +200,12 @@ static void win_render(void) {
                 render_text(2, 14, buf);
                 break;
             case 6:
-                // v1.2 Phase 3: when a milestone is active, the milestone
-                // text replaces the standard menu hints at rows 16-17.
-                // Painted in the milestone block below (after the loop).
-                // When NO milestone is active, the standard hints render
-                // here as in v1.1.
-                if (!milestone_streak_hit && !milestone_lifetime_hit) {
+                // v1.2 Phase 3: when ANY milestone is active (lifetime,
+                // streak, or all_puzzles_done), the milestone text below
+                // replaces the standard menu hints. When none active,
+                // render the standard hints here (v1.1 behavior).
+                if (!milestone_streak_hit && !milestone_lifetime_hit
+                                          && !all_puzzles_done) {
                     render_text(2, 16, "START  NEXT");
                     render_text(2, 17, "SELECT TITLE");
                 }
@@ -188,12 +213,37 @@ static void win_render(void) {
         }
     }
 
-    // v1.2 Phase 3: milestone text overlay. Streak priority — if both
-    // lifetime and streak milestones fire on the same WIN, streak's
-    // bigger text wins. Painted ONCE after the typewriter completes.
+    // v1.2 Phase 3: milestone text overlay. Three classes that stack:
+    //
+    //   Row 15: "ALL PUZZLES DONE!" if all_puzzles_done (highest tier;
+    //           only fires when every puzzle has been completed)
+    //   Row 16: "STREAK N!" (streak priority over lifetime if both hit)
+    //           OR "ALL PUZZLES DONE!" (if all_puzzles_done is the ONLY
+    //           milestone — moves to row 16 instead of row 15)
+    //   Row 17: "PRESS START!" if any milestone active
+    //
+    // Painted ONCE after the typewriter completes, guarded by
+    // milestone_displayed.
     if (last_rendered_stats_step >= 6 && !milestone_displayed) {
         char buf[21];
-        if (milestone_streak_hit) {
+        bool combined_milestone = milestone_streak_hit || milestone_lifetime_hit;
+
+        if (all_puzzles_done && combined_milestone) {
+            // Both: ALL PUZZLES DONE on row 15, streak/lifetime on row 16
+            render_text(1, 15, "ALL PUZZLES DONE!");
+            if (milestone_streak_hit) {
+                sprintf(buf, "STREAK %d!", (int)win_save.current_streak);
+                render_text(5, 16, buf);
+            } else {
+                sprintf(buf, "%d SOLVED!", (int)win_save.puzzles_solved_total);
+                render_text(5, 16, buf);
+            }
+            render_text(2, 17, "PRESS START!");
+        } else if (all_puzzles_done) {
+            // Only all-done — promote it to row 16 alone.
+            render_text(1, 16, "ALL PUZZLES DONE!");
+            render_text(2, 17, "PRESS START!");
+        } else if (milestone_streak_hit) {
             sprintf(buf, "STREAK %d!", (int)win_save.current_streak);
             render_text(5, 16, buf);
             render_text(2, 17, "PRESS START!");
@@ -273,10 +323,11 @@ static void win_update(Scene *next_scene) {
 
     // v1.2 Phase 3: milestone fanfare. Fires ONCE on the first frame
     // after stats_step reaches 6 AND any milestone is hit. Reuses
-    // existing SFX (sfx_win for streak — celebratory; sfx_correct for
-    // lifetime — gentler chime) to keep sound vocabulary consistent.
+    // existing SFX (sfx_win for the bigger achievements — streak OR
+    // all-puzzles-done; sfx_correct for the gentler lifetime chime)
+    // to keep sound vocabulary consistent.
     if (stats_step >= 6 && !milestone_fanfare_played) {
-        if (milestone_streak_hit) {
+        if (milestone_streak_hit || all_puzzles_done) {
             sfx_win();
         } else if (milestone_lifetime_hit) {
             sfx_correct();
