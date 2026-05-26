@@ -28,6 +28,7 @@ typedef struct {
     uint8_t  menu_item_count;     // 1 (fresh) / 2 (returning) / 3 (mid-puzzle) +1 each if PUZZLES visible
     uint8_t  puzzles_cursor_idx;  // v1.2: menu_cursor value that selects PUZZLES (0xFF if hidden)
     bool     show_confirm;        // NEW GAME confirm overlay
+    bool     last_rendered_show_confirm;  // v1.2 Phase 7 fix: track dialog state for incremental render
     bool     redraw_needed;       // gates re-render to avoid every-frame flicker
 } TitleState;
 
@@ -75,10 +76,18 @@ static void title_init(void) {
     }
 
     ts.show_confirm = false;
+    ts.last_rendered_show_confirm = false;  // matches initial show_confirm
     ts.redraw_needed = true;
     // Default tile layout (font + UI) is already loaded by render_init()
     // from main.c. Plan B's TITLE scene is text-only; Plan C will load
     // title.png art via dynamic VRAM swapping.
+
+    // v1.2 Phase 7 fix: clear ONCE here. Subsequent menu-cycle redraws
+    // skip render_clear (see title_render) to avoid VBlank-racing
+    // flicker — the static chrome (banner, subtitle, attribution,
+    // stats) just gets overwritten with itself; the menu cursor diff
+    // overwrites cleanly in-place.
+    render_clear();
 
     // Plan D Phase 6: start the upbeat 8-bar title theme on CH1.
     // SFX continue using CH2/CH4 (sfx_move/select/deselect on CH2,
@@ -90,7 +99,16 @@ static void title_render(void) {
     if (!ts.redraw_needed) return;
     ts.redraw_needed = false;
 
-    render_clear();
+    // v1.2 Phase 7 fix: only call render_clear when the dialog state
+    // toggled (open or close), since the dialog overlay can leave
+    // stale text on rows 8/10/13/14 that need wiping. For pure menu-
+    // cursor cycling, the existing tile writes overwrite themselves
+    // (banner/subtitle/attribution unchanged) or the new cursor state
+    // (menu rows). No clear → no VBlank race → no flicker.
+    if (ts.show_confirm != ts.last_rendered_show_confirm) {
+        render_clear();
+        ts.last_rendered_show_confirm = ts.show_confirm;
+    }
     // Title banner: 8 tiles wide × 4 tall, centered horizontally on
     // a 20-tile screen → starts at column (20-8)/2 = 6. Tiles in
     // title.png are arranged row-major so banner tile (r, c) lives at

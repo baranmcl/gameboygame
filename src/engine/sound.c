@@ -18,10 +18,29 @@ static ActiveSfx active = SFX_NONE;
 static uint8_t   step = 0;
 static uint8_t   step_remaining = 0;
 
+// CH3 wave RAM template — a simple 50%-duty square wave (16 samples high,
+// 16 samples low, packed as 16 bytes × 2 nibbles each). Gives CH3 a tonal
+// character similar to CH1/CH2 square channels. Loaded once at boot;
+// must not be touched while CH3 is playing.
+static const uint8_t WAVE_RAM_SQUARE[16] = {
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
 void sound_init(void) {
     NR52_REG = 0x80;  // master enable
     NR51_REG = 0xFF;  // route all channels to both speakers
     NR50_REG = 0x77;  // max volume both speakers
+
+    // Load CH3 wave RAM with a square waveform for sfx_move (v1.2 Phase 7
+    // fix — moving cursor SFX off CH2 so it stops clobbering the title
+    // theme's harmony layer). CH3 must be disabled (NR30 = 0) while we
+    // write wave RAM to avoid hardware undefined-read behavior.
+    NR30_REG = 0x00;
+    for (uint8_t i = 0; i < 16; i++) {
+        _AUD3WAVERAM[i] = WAVE_RAM_SQUARE[i];
+    }
+    NR30_REG = 0x80;  // re-enable CH3 (no sound until NR34 trigger)
 }
 
 // ----- Pitch-byte constants (Plan C calibration) -----
@@ -59,15 +78,25 @@ void sound_init(void) {
 // ---------- Single-tick SFX (no scheduling needed) ----------
 
 void sfx_move(void) {
-    // A5 at low volume with fast decay — a soft "tap" rather than a
-    // piercing "tick". This SFX fires every D-pad press, so it should
-    // sit beneath the action sounds (select/deselect) volume-wise.
-    // NR22 = 0x42 → volume 4 (down from 8), envelope decay, step time 2
-    // (faster fadeout than the default 4).
-    NR21_REG = 0x80;
-    NR22_REG = 0x42;
-    NR23_REG = NOTE_A5_LO;
-    NR24_REG = NOTE_A5_HI;
+    // v1.2 Phase 7 fix: moved from CH2 → CH3 (wave channel). The previous
+    // CH2 implementation was clobbering the title-theme's CH2 harmony
+    // every d-pad press; now CH2 stays available for harmony while
+    // sfx_move plays on CH3.
+    //
+    // CH3 uses a different frequency formula (hz = 65536 / (2048 - x))
+    // and has no envelope — just fixed volume + a length counter that
+    // auto-disables the channel. ~50ms tap with full volume.
+    //
+    // Frequency: A5 (880 Hz) on CH3 → x = 2048 - 65536/880 = 1974
+    //   NR33 = low 8 bits = 0xB6
+    //   NR34 = trigger(0x80) | length-enable(0x40) | high 3 bits = 0xC7
+    // Length: NR31 = 256 - 13 = 0xF3 → ~50ms playback then auto-stop.
+    // Volume: NR32 = 0x40 → 100% (CH3 has no envelope, so we want full
+    //   amplitude for the brief click).
+    NR31_REG = 0xF3;
+    NR32_REG = 0x40;
+    NR33_REG = 0xB6;
+    NR34_REG = 0xC7;  // trigger + length-enable + freq high (top 3 bits)
     active = SFX_NONE;
 }
 
