@@ -4,6 +4,12 @@ A homebrew Game Boy ROM that recreates the [NYT Connections](https://www.nytimes
 
 Plays on original Game Boy (DMG) in monochrome. On Game Boy Color (GBC) — same ROM, no need to download anything different — the four tier bars render in their faithful NYT yellow/green/blue/purple.
 
+## Screenshots
+
+| Title | Gameplay | Win |
+|---|---|---|
+| ![Title screen](assets/screenshots/title.PNG) | ![Gameplay](assets/screenshots/gameplay.PNG) | ![Win screen](assets/screenshots/win.PNG) |
+
 ## Play it
 
 1. **Download the ROM** from the [latest release page](https://github.com/baranmcl/gameboygame/releases/latest) — the `gameboygame.gb` asset.
