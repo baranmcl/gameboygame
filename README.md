@@ -44,6 +44,32 @@ You get **4 tries**. Solve all 4 groups → you win. Run out of tries → you se
 - After a puzzle ends, **START** moves to the next puzzle and **SELECT** returns to the title.
 - Lifetime stats (puzzles solved, current streak, best streak) are visible on the title screen.
 
+## Troubleshooting
+
+If your render doesn't match the screenshots above, it's almost always an **emulator setting**, not a ROM bug. The three most common issues, all in mGBA:
+
+### "The cursor is invisible"
+
+The cursor is a hardware sprite (OBJ layer). If your emulator has the sprite layer disabled, it'll never appear and you can't tell which word you're hovering on.
+
+**mGBA fix**: **Tools → Layers** (or **View → Layers** in some versions). Make sure **OBJ** is checked alongside BG and Window.
+
+### "Word cells have no visible background — words look like floating text on a white screen"
+
+The cell backgrounds are a subtly-hatched tile pattern using the GB's middle grey shades. If your emulator's DMG palette is set to a 2-shade "black & white" preset, mGBA collapses those middle greys to pure white and the hatching disappears.
+
+**mGBA fix**: **Settings → Audio/Video → Game Boy palette** (or **Settings → Game Boy → DMG palette** in some versions). Switch to **"Game Boy"** or **"Game Boy Pocket"** (the default 4-shade greyscale). If you're playing in GBC mode, ensure GBC palette handling is set to automatic, not overridden.
+
+### "Everything looks blurry / fine details washed out"
+
+Heavy bilinear upscale filtering can blur 1-pixel details into smooth grey, destroying the hatching pattern and softening text glyphs.
+
+**mGBA fix**: **Settings → Audio/Video → Filter** → set to **"Nearest neighbor"** (sharp pixels) or disable filtering. Modern displays handle the integer-multiple upscale crisply.
+
+### Reference: what the game should look like
+
+Compare your render to the [screenshots above](#screenshots). The cells should have a visible texture, you should see a cursor sprite on the active word, and tier bars (when groups are solved) should render with checkered ends + a solid centre containing the category name.
+
 ## Build from source
 
 Requires [GBDK-2020](https://github.com/gbdk-2020/gbdk-2020) (SDCC-based Game Boy compiler) and Python 3 for the build pipeline.
