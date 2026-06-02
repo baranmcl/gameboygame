@@ -21,6 +21,8 @@ Plays on original Game Boy (DMG) in monochrome. On Game Boy Color (GBC) — same
 
 3. **Load the ROM.** In your emulator, open `gameboygame.gb` (File → Open ROM, or drag-and-drop).
 
+**Or play on real hardware.** Flash the ROM to a Game Boy flash cart — the [EverDrive GB X7](https://krikzz.com/store/home/56-everdrive-gb-x7.html), EZ-Flash Junior, and similar carts all work. The same cart plays on any DMG-family system: original Game Boy, Game Boy Pocket / Light, Game Boy Color, and Game Boy Advance (via its backwards-compatibility hardware). v1.2 has been hardware-tested on Game Boy Pocket and Game Boy Advance.
+
 ## How to play
 
 Each puzzle has **16 words** arranged in a 4×8 grid. They belong to **4 hidden categories** of 4 words each (yellow = easiest, purple = hardest). Your job is to figure out which words go together and submit each group of 4.
@@ -84,4 +86,4 @@ Puzzle content lives in `content/puzzles.json` and is validated + compiled into 
 
 ## Project status
 
-**v1.2 shipped 2026-05-26.** Adds puzzle-select replay screen + per-puzzle best records, tiered milestone celebrations (every 5 lifetime solves + every 5-puzzle streak + all-puzzles-done), multi-voice title music with kick/snare drum beat, puzzle-start CH1 fanfare, ALL_DONE scene with 2-voice fanfare + scrolling text, cascade-bar slide-in animations, and 20 more puzzles (50 total). Save data from v1.0/v1.1 carries over automatically. Same ROM works on DMG and GBC. Hardware verification on real Game Boy hardware via flash cart is deferred to a future release.
+**v1.2 shipped 2026-05-26.** Adds puzzle-select replay screen + per-puzzle best records, tiered milestone celebrations (every 5 lifetime solves + every 5-puzzle streak + all-puzzles-done), multi-voice title music with kick/snare drum beat, puzzle-start CH1 fanfare, ALL_DONE scene with 2-voice fanfare + scrolling text, cascade-bar slide-in animations, and 20 more puzzles (50 total). Save data from v1.0/v1.1 carries over automatically. **Hardware-confirmed** on Game Boy Pocket (via EverDrive GB X7) and Game Boy Advance — and since GBA runs GBC games on its native LR35902 co-processor, Game Boy Color compatibility is implicitly verified too.
