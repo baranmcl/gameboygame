@@ -519,8 +519,19 @@ static void play_update(Scene *next_scene) {
                 // we're really in a replay session. ip_* clears are
                 // safe to fire either way (no-op on replays since ip_*
                 // was already 0).
+                //
+                // v1.2.1 streak-reset bug fix: also reset current_streak
+                // HERE on the actual loss event. Previously only the
+                // SKIP branch in scene_lose did this, which meant a
+                // player who lost a puzzle but chose RETRY (rather
+                // than SKIP) kept their streak intact — the streak
+                // should break on the loss itself regardless of what
+                // the player does next. Gated on linear mode for the
+                // same reason as fails (replay losses don't affect
+                // linear progression stats).
                 if (replay_puzzle_index == REPLAY_NONE) {
                     pg_save.current_puzzle_fails++;
+                    pg_save.current_streak = 0;
                 }
                 pg_save.ip_tries_remaining = 0;
                 pg_save.ip_groups_solved   = 0;
