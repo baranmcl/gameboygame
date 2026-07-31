@@ -59,19 +59,37 @@ notes and commit messages.
 
 ## Execution Status
 
-**Overall:** Not started. 9 phases planned.
+**Overall:** ✅ **COMPLETE — all 9 phases shipped.** v1.2 tagged + released 2026-05-27; v1.2.1 patch released 2026-06-08.
+
+🎉 **Plan complete — v1.2 tagged and released.**
 
 | Phase | Status | Ship SHA(s) | Notes |
 |---|---|---|---|
-| 1 — Save struct v2 migration + per-puzzle stats capture | ⬜ Not started | — | extend GameSave with completed_bits + best records; v1→v2 migration backfills |
-| 2 — Cascade-bar slide-in (scene_win + scene_lose) | ⬜ Not started | — | SCX-based slide for bar reveal animations |
-| 3 — Tiered milestone celebrations (lifetime + streak) | ⬜ Not started | — | small fanfare every 5 lifetime, bigger every 5 streak |
-| 4 — Music engine: CH2 harmony support | ⬜ Not started | — | optional `ch2_notes` parallel array on MusicTrack; host tests |
-| 5 — Title theme: CH2 harmony layer | ⬜ Not started | — | author harmony for title_theme.c |
-| 6 — Puzzle-start CH1 stinger | ⬜ Not started | — | 4-note fanfare when PLAY scene loads |
-| 7 — Puzzle-select scene + replay flow | ⬜ Not started | — | new SCENE_PUZZLE_SELECT; grid view; replay any completed puzzle |
-| 8 — Smaller ALL_DONE polish | ⬜ Not started | — | longer chiptune flourish + scrolling text |
-| 9 — Content: +20 puzzles (to 50 total) + v1.2 release | ⬜ Not started | — | DMG/GBC verify, README, tag, asset upload |
+| 1 — Save struct v2 migration + per-puzzle stats capture | ✅ Shipped 2026-05-26 | `44a0b99` | extend GameSave with completed_bits + best records; v1→v2 migration backfills |
+| 2 — Cascade-bar slide-in (scene_win + scene_lose) | ✅ Shipped 2026-05-26 | `8eabdde`, `3f2e816`, `f72868d` | SCX-based slide for bar reveal animations; +1 unplanned commit for scene_lose flicker |
+| 3 — Tiered milestone celebrations (lifetime + streak) | ✅ Shipped 2026-05-26 | `2ea4be0`, `d99f603` | small fanfare every 5 lifetime, bigger every 5 streak; ALL-PUZZLES-DONE tier added (see Deviations) |
+| 4 — Music engine: CH2 harmony support | ✅ Shipped 2026-05-26 | `a052913` | optional `ch2_notes` parallel array on MusicTrack; host tests |
+| 5 — Title theme: CH2 harmony layer | ✅ Shipped 2026-05-26 | `2426186` | author harmony for title_theme.c; CH4 drums added (see Deviations) |
+| 6 — Puzzle-start CH1 stinger | ✅ Shipped 2026-05-26 | `d5b4cc1` | 4-note fanfare when PLAY scene loads |
+| 7 — Puzzle-select scene + replay flow | ✅ Shipped 2026-05-26 | `e051c37`, `f25b850`, `8af305d`, `a5c047f`, `085d8f3` | new SCENE_PUZZLE_SELECT; grid view; replay any completed puzzle; +2 fix commits (see Deviations + Discoveries) |
+| 8 — Smaller ALL_DONE polish | ✅ Shipped 2026-05-26 | `41cd98c` | longer chiptune flourish + scrolling text |
+| 9 — Content: +20 puzzles (to 50 total) + v1.2 release | ✅ Shipped 2026-05-27 | `69a19e4`, `74f045d`, `b4e2dc9` | DMG/GBC verify, README, tag `v1.2`, asset uploaded to GitHub release |
+
+**Post-release commits** (not part of any phase): `b9735d1` README screenshots (2026-05-27), `af49d92` mGBA troubleshooting section (2026-06-01), `d994e8b` hardware-verification note (2026-06-02), `2c735df` streak-reset bug fix (2026-06-07, released as `v1.2.1` on 2026-06-08).
+
+### Deviations
+
+- **Phase 3 — extra milestone tier.** The plan specified two tiers (every-5-lifetime, every-5-streak). A third, "ALL PUZZLES DONE!", was added in `d99f603` and stacks with the other two. Row-priority rules are documented inline at [`src/game/scene_win.c:218-244`](../../src/game/scene_win.c).
+- **Phase 5 — CH4 drums added beyond scope.** The plan scoped Phase 5 to a CH2 harmony layer only. `2426186` also added a CH4 kick/snare drum track, which required a further music-engine extension beyond Phase 4's `ch2_notes` work.
+- **Phase 7 — channel reservation changed.** `a5c047f` moved `sfx_move` from **CH2 → CH3** (wave channel) because CH2 SFX audibly interrupted the Phase 5 harmony layer every time the cursor moved. This contradicts the original channel table in Architecture Notes → Music engine extension, which has been corrected in place. CH3 required loading a square waveform into wave RAM at init; see [`src/engine/sound.c:21-43`](../../src/engine/sound.c) and [`src/engine/sound.c:80-99`](../../src/engine/sound.c).
+- **Phase 2 — one extra commit.** `f72868d` reworked `scene_lose` to render incrementally; the planned full-redraw-per-frame approach flickered visibly on hardware.
+
+### Discoveries
+
+- **Per-puzzle records sentinel bug** (found during Phase 7, fixed in `085d8f3`). The puzzle-select BEST display treated `best_tries == 0` as "no record," but 0 is a legitimate value — a perfect game with no wrong submissions. Perfect-gamed puzzles displayed `--` forever. Fix: `best_time` is now the *sole* sentinel. No save migration was needed — the data was always stored correctly, only the display was wrong.
+- **`sfx_reject` was inaudible** (found during Phase 7, fixed in `085d8f3`). Volume 4 → 6 and noise pattern `0x77` → `0x44`. The original deep-rumble tuning never registered in PUZZLE_SELECT's quiet context.
+- **Streak-reset bug** (found post-release, fixed in `2c735df`, shipped as v1.2.1). The streak was being reset on the SKIP *action* rather than on the loss *event*, so skipping a puzzle wrongly zeroed an active streak.
+- **ROM space is the binding constraint on v1.3.** Measured post-release from `build/gameboygame.ihx`: 28,456 bytes used, highest address `0x6FC3`, against 32,768 addressable without bank switching — roughly **4.1KB free**. Puzzle data costs **~212 bytes/puzzle** (10,601 bytes for 50). No `__banked` or `#pragma bank` exists anywhere in `src/`, so banks 2–3 declared by `-Wm-yo4` in the Makefile are unreachable dead weight. Any v1.3 work that adds either content or code needs MBC1 bank switching first.
 
 ---
 
@@ -105,8 +123,9 @@ typedef struct {
 
 Channel reservation table:
 - **CH1**: music melody (existing) OR SFX `sfx_correct` / `sfx_wrong` / `sfx_win` / `sfx_lose` / `sfx_skip` / `sfx_stinger`. When SFX fires during music, it overrides the channel briefly — music resumes when the next note tick arrives.
-- **CH2**: SFX `sfx_move` / `sfx_select` / `sfx_deselect` (existing) AND NEW music harmony. The harmony writes happen in `music_tick` (VBlank), SFX writes happen in main loop (input handlers). VBlank interrupt boundary means harmony writes can't be interrupted mid-write by SFX. SFX timing wins (brief "click"), then harmony resumes on next music_tick boundary.
-- **CH4**: noise SFX (`sfx_reject`) — unchanged.
+- **CH2**: SFX `sfx_select` / `sfx_deselect` AND NEW music harmony. The harmony writes happen in `music_tick` (VBlank), SFX writes happen in main loop (input handlers). VBlank interrupt boundary means harmony writes can't be interrupted mid-write by SFX. SFX timing wins (brief "click"), then harmony resumes on next music_tick boundary.
+- **CH3**: `sfx_move` (wave channel). ⚠️ **As-shipped correction (Phase 7, `a5c047f`):** this plan originally assigned `sfx_move` to CH2. In practice, firing it on every cursor movement chopped the Phase 5 harmony layer badly enough to be unacceptable, so it moved to CH3. CH3 needs a square waveform loaded into wave RAM at init, and uses a different frequency formula (`hz = 65536 / (2048 - x)`). See Deviations.
+- **CH4**: noise SFX (`sfx_reject`) + NEW drum track (kick/snare) added in Phase 5.
 
 ### Scene flow with puzzle-select
 
@@ -132,7 +151,7 @@ ALL_DONE is hit by very few players (5+ hours of play). Every-5-puzzles mileston
 
 ## Phase 1 — Save struct v2 migration + per-puzzle stats capture
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-26 — `44a0b99`
 
 **Goal**: Extend `GameSave` with `completed_bits`, `puzzle_best_time[]`, `puzzle_best_tries[]`. Bump `SAVE_VERSION` to 2. Add v1→v2 migration path. Capture per-puzzle records when winning. End state: existing players' progress is preserved on first v1.2 boot; new wins update per-puzzle records visible later in Phase 7's puzzle-select screen.
 
@@ -145,7 +164,7 @@ ALL_DONE is hit by very few players (5+ hours of play). Every-5-puzzles mileston
 - Modify: `src/game/game_state.h` — bump SAVE_VERSION, extend GameSave struct
 - Modify: `src/engine/save.c` — update compile-time size assertions to match new struct
 
-- [ ] **Step 1: Add MAX_PUZZLES_SUPPORTED to puzzles_types.h**
+- [x] **Step 1: Add MAX_PUZZLES_SUPPORTED to puzzles_types.h**
 
 Open `src/game/puzzles_types.h`. After the existing `#define`s but before the struct, add:
 
@@ -158,7 +177,7 @@ Open `src/game/puzzles_types.h`. After the existing `#define`s but before the st
 #define MAX_PUZZLES_SUPPORTED 64
 ```
 
-- [ ] **Step 2: Update GameSave struct in game_state.h**
+- [x] **Step 2: Update GameSave struct in game_state.h**
 
 Open `src/game/game_state.h`. Replace the existing `GameSave` struct + `SAVE_VERSION` define with the new v2 layout:
 
@@ -230,7 +249,7 @@ Update `SAVE_VERSION` define from 1 to 2:
 #define SAVE_VERSION 2
 ```
 
-- [ ] **Step 3: Update compile-time size assertions in save.c**
+- [x] **Step 3: Update compile-time size assertions in save.c**
 
 Open `src/engine/save.c`. The existing assertions:
 
@@ -256,7 +275,7 @@ typedef char _check_v2_checksum_offset[offsetof(GameSave, checksum) == 223 ? 1 :
 
 If the asserts fail at compile time with "negative array size" errors, SDCC inserted padding. Diagnose by adding `printf("%d\n", (int)offsetof(GameSave, completed_bits))` to a test main and adjusting expected offsets to match observed.
 
-- [ ] **Step 4: Build to verify struct layout matches assertions**
+- [x] **Step 4: Build to verify struct layout matches assertions**
 
 ```bash
 make 2>&1 | tail -10
@@ -264,7 +283,7 @@ make 2>&1 | tail -10
 
 Expected: clean build, no "negative array size" errors. If errors, the struct has unexpected padding — fix by reordering fields (uint16 fields should be at even offsets, uint8 fills the gaps).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/game/puzzles_types.h src/game/game_state.h src/engine/save.c
@@ -285,7 +304,7 @@ the new layout. Migration path lands in 1.2."
 
 **Approach:** When `save_load` reads SRAM and finds valid magic but `version == 1`, treat as a legacy v1 save. Compute the legacy checksum over the first 20 bytes (using the v1 checksum algorithm). If valid, copy v1 fields into the new struct, backfill `completed_bits` from `current_puzzle_index`, zero the new fields, save back as v2.
 
-- [ ] **Step 1: Add the LegacyGameSaveV1 type to save.c**
+- [x] **Step 1: Add the LegacyGameSaveV1 type to save.c**
 
 In `src/engine/save.c`, after the existing compile-time assertions, add the legacy struct definition:
 
@@ -321,7 +340,7 @@ static uint8_t compute_v1_checksum(const LegacyGameSaveV1 *s) {
 }
 ```
 
-- [ ] **Step 2: Update compute_checksum to cover the v2 byte range**
+- [x] **Step 2: Update compute_checksum to cover the v2 byte range**
 
 The existing `compute_checksum` covers bytes 0..18. v2's checksum covers bytes 0..222. Replace:
 
@@ -336,7 +355,7 @@ static uint8_t compute_checksum(const GameSave *s) {
 
 Note: changed counter type from `uint8_t` to `uint16_t` since 223 fits in uint8_t but the loop bound check `i < 223` works either way. uint16 is safer and matches the new struct size.
 
-- [ ] **Step 3: Add the migration function**
+- [x] **Step 3: Add the migration function**
 
 After `compute_v1_checksum`, before `save_reset`, add:
 
@@ -380,7 +399,7 @@ static void migrate_v1_to_v2(const LegacyGameSaveV1 *legacy, GameSave *out) {
 }
 ```
 
-- [ ] **Step 4: Rewrite save_load to handle both v1 and v2**
+- [x] **Step 4: Rewrite save_load to handle both v1 and v2**
 
 Replace the existing `save_load` function with:
 
@@ -455,7 +474,7 @@ bool save_load(GameSave *out) {
 }
 ```
 
-- [ ] **Step 5: Build + verify clean compile**
+- [x] **Step 5: Build + verify clean compile**
 
 ```bash
 make 2>&1 | tail -5
@@ -463,7 +482,7 @@ make 2>&1 | tail -5
 
 Expected: clean build. If `memset` is undefined, ensure `<string.h>` is included (it is — already there).
 
-- [ ] **Step 6: Manual migration test in mGBA**
+- [x] **Step 6: Manual migration test in mGBA**
 
 Because save migration only matters for users with existing v1 saves, automated host testing isn't practical (the test environment doesn't have a real `.sav` file from a prior version). Manual test procedure:
 
@@ -479,7 +498,7 @@ Because save migration only matters for users with existing v1 saves, automated 
    ls -la *.sav 2>/dev/null || ls -la "%APPDATA%/mGBA/*.sav" 2>/dev/null
    ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/engine/save.c
@@ -503,11 +522,11 @@ v2→v3 branch)."
 **Files:**
 - Modify: `src/game/scene_play.c` — when winning a group that finishes the puzzle, update completed_bits + best stats before transitioning to WIN
 
-- [ ] **Step 1: Find the WIN-transition block in scene_play.c**
+- [x] **Step 1: Find the WIN-transition block in scene_play.c**
 
 In scene_play.c, the WIN transition logic is in `play_update` around line 359+ (the `if (ps.groups_solved == 0x0F)` block). It currently captures `last_puzzle_result` for the WIN scene's display, increments save fields, advances `current_puzzle_index`, and transitions.
 
-- [ ] **Step 2: Add completed_bits + per-puzzle record update before save_store**
+- [x] **Step 2: Add completed_bits + per-puzzle record update before save_store**
 
 Insert before the existing `pg_save.puzzles_solved_total++;` line:
 
@@ -540,19 +559,19 @@ Insert before the existing `pg_save.puzzles_solved_total++;` line:
                 }
 ```
 
-- [ ] **Step 3: Build**
+- [x] **Step 3: Build**
 
 ```bash
 make 2>&1 | tail -3
 ```
 
-- [ ] **Step 4: Manual verification in mGBA**
+- [x] **Step 4: Manual verification in mGBA**
 
 Play and complete puzzle 1 (any group). Quit to TITLE. Power-cycle mGBA (File → Reset). Boot — the save should load cleanly (v2 fast path). Play puzzle 1 again (would require puzzle-select scene — not built yet — so this test mostly verifies the write didn't crash; the read-back verification happens in Phase 7).
 
 Alternative verification: use mGBA's memory viewer (Tools → "Game state" or "Memory") to inspect SRAM at 0xA000. After winning puzzle 1, bit 0 of offset 20 (completed_bits[0]) should be 1. puzzle_best_time[0] at offsets 28-29 (uint16 little-endian) should be non-zero (matching the seconds taken).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/game/scene_play.c
@@ -580,7 +599,9 @@ If round 3 still finds issues, keep going until clean.
 
 ## Phase 2 — Cascade-bar slide-in (scene_win + scene_lose)
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-26 — `8eabdde`, `3f2e816`, `f72868d`
+
+> Deviation: `f72868d` was unplanned — `scene_lose` needed incremental rendering to eliminate cascade flicker.
 
 **Goal**: When tier bars cascade in on WIN (Plan B's ANIM_BAR_CASCADE) and LOSE (ANIM_LOSE_REVEAL), each bar slides in horizontally from off-screen left rather than popping in. Visual polish only — animation duration and bar count unchanged.
 
@@ -609,7 +630,7 @@ But for the cascade timing: currently bar cascade advances by ONE bar every 20 f
 
 scene_win currently tracks `cascade_step` (0..4 — number of bars fully revealed). Add `slide_progress` (0..20, columns painted of the *current* bar being revealed). Re-derive `slide_progress` from elapsed frames just like cascade_step.
 
-- [ ] **Step 1: Add slide_progress state to scene_win.c**
+- [x] **Step 1: Add slide_progress state to scene_win.c**
 
 In scene_win.c after the existing `static` declarations, add:
 
@@ -625,7 +646,7 @@ slide_cols = 0;
 last_rendered_slide_cols = 0;
 ```
 
-- [ ] **Step 2: Drive slide_cols from elapsed frames in win_update**
+- [x] **Step 2: Drive slide_cols from elapsed frames in win_update**
 
 In `win_update`, inside the `if (anim_current() == ANIM_BAR_CASCADE)` block, after the existing `cascade_step` computation, add:
 
@@ -648,7 +669,7 @@ In `win_update`, inside the `if (anim_current() == ANIM_BAR_CASCADE)` block, aft
         }
 ```
 
-- [ ] **Step 3: Modify render_bar to take a reveal_cols parameter**
+- [x] **Step 3: Modify render_bar to take a reveal_cols parameter**
 
 Change the `render_bar` signature:
 
@@ -690,7 +711,7 @@ static void render_bar(const Puzzle *puzzle, uint8_t tier, uint8_t y, uint8_t re
 }
 ```
 
-- [ ] **Step 4: Update win_render to pass slide_cols for the currently-sliding bar**
+- [x] **Step 4: Update win_render to pass slide_cols for the currently-sliding bar**
 
 In `win_render`, the existing loop renders already-revealed bars with reveal_cols=20 (full) and the currently-sliding bar with reveal_cols=slide_cols:
 
@@ -726,17 +747,17 @@ Also reset `last_rendered_slide_cols = 0` when `cascade_step` advances (so the n
     }
 ```
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 ```bash
 make 2>&1 | tail -3
 ```
 
-- [ ] **Step 6: Verify visually in mGBA**
+- [x] **Step 6: Verify visually in mGBA**
 
 Solve all 4 groups of any puzzle. On WIN scene, each tier bar should now visibly slide in from the left over ~5 frames before snapping fully into place + the category-name text appearing.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/game/scene_win.c
@@ -754,7 +775,7 @@ reveal_cols parameter (existing callers pass 20)."
 **Files:**
 - Modify: `src/game/scene_lose.c` — apply the same slide-in pattern to its `render_bar`
 
-- [ ] **Step 1: Apply the same pattern to scene_lose.c**
+- [x] **Step 1: Apply the same pattern to scene_lose.c**
 
 scene_lose has a parallel `render_bar(puzzle, tier, y)` function and a parallel reveal animation (`reveal_step` driven by `ANIM_LOSE_REVEAL`). Apply the same slide_cols tracking + render_bar(reveal_cols) signature change. The reveal animation timing in scene_lose is identical to scene_win's (4 bars × 20 frames = 80 frames total), so the same 5-frames-slide formula applies.
 
@@ -804,7 +825,7 @@ Actually scene_lose's `lose_render` uses `render_clear` then renders bars 0..rev
     }
 ```
 
-- [ ] **Step 2: Build + verify visually in mGBA**
+- [x] **Step 2: Build + verify visually in mGBA**
 
 ```bash
 make 2>&1 | tail -3
@@ -812,7 +833,7 @@ make 2>&1 | tail -3
 
 Trigger LOSE (submit 4 wrong groups). Each tier bar in the answer reveal should slide in from the left over 5 frames.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/game/scene_lose.c
@@ -829,7 +850,9 @@ git commit -m "v1.2.2.2: scene_lose cascade bars slide in (same pattern as scene
 
 ## Phase 3 — Tiered milestone celebrations (lifetime + streak)
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-26 — `2ea4be0`, `d99f603`
+
+> Deviation: a third tier, "ALL PUZZLES DONE!", was added in `d99f603` beyond the two planned tiers.
 
 **Goal**: After WIN, if either (a) `puzzles_solved_total` is a multiple of 5, fire a small "lifetime milestone" celebration — brief text + CH1 fanfare. (b) `current_streak` is a multiple of 5, fire a bigger "streak milestone" celebration — bigger text + longer fanfare + brief animation. Both can fire on the same WIN (5-streak + 5-lifetime would show both back-to-back).
 
@@ -842,7 +865,7 @@ git commit -m "v1.2.2.2: scene_lose cascade bars slide in (same pattern as scene
 **Files:**
 - Modify: `src/game/scene_win.c` — add milestone tracking + new render state
 
-- [ ] **Step 1: Add milestone state**
+- [x] **Step 1: Add milestone state**
 
 In scene_win.c, after the existing statics:
 
@@ -868,7 +891,7 @@ In `win_init`, set them based on the loaded save:
     milestone_fanfare_played  = false;
 ```
 
-- [ ] **Step 2: Add milestone rendering in win_render after stats reveal**
+- [x] **Step 2: Add milestone rendering in win_render after stats reveal**
 
 In `win_render`, after the existing stats typewriter loop:
 
@@ -894,7 +917,7 @@ In `win_render`, after the existing stats typewriter loop:
     }
 ```
 
-- [ ] **Step 3: Fire fanfare SFX in win_update**
+- [x] **Step 3: Fire fanfare SFX in win_update**
 
 Add a fanfare-trigger block in `win_update` that fires once after stats fully revealed AND a milestone is hit. The fanfare itself reuses existing SFX (small = sfx_select; big = sfx_correct or a new sfx_milestone — TBD by implementer based on what fits sound-wise; default to existing SFX to keep scope tight):
 
@@ -911,7 +934,7 @@ Add a fanfare-trigger block in `win_update` that fires once after stats fully re
 
 Place this block AFTER the existing typewriter advancement but BEFORE the START/SELECT input handling.
 
-- [ ] **Step 4: Suppress the existing "START NEXT / SELECT TITLE" text when milestone shows**
+- [x] **Step 4: Suppress the existing "START NEXT / SELECT TITLE" text when milestone shows**
 
 The existing stats typewriter renders at step 6:
 ```c
@@ -936,7 +959,7 @@ When a milestone is hit, those two lines collide with the milestone text. Skip t
                 break;
 ```
 
-- [ ] **Step 5: Build + manually verify**
+- [x] **Step 5: Build + manually verify**
 
 ```bash
 make 2>&1 | tail -3
@@ -944,7 +967,7 @@ make 2>&1 | tail -3
 
 To verify quickly without playing 5 puzzles: use mGBA's memory viewer to set `puzzles_solved_total` to 4, then win a puzzle (now total = 5). Or modify your save in mGBA. Lifetime milestone should fire. For streak milestone, set `current_streak` to 4 and win without skipping.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/game/scene_win.c
@@ -968,7 +991,7 @@ visual + audio overlay, doesn't gate anything."
 
 ## Phase 4 — Music engine: CH2 harmony support
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-26 — `a052913`
 
 **Goal**: Extend the music engine to support an optional CH2 harmony layer alongside the existing CH1 melody. Lockstep timing — CH2 note transitions happen at the same frame as CH1 transitions. Existing CH1-only tracks (title_theme) keep working unchanged with `ch2_notes = NULL`.
 
@@ -980,7 +1003,7 @@ visual + audio overlay, doesn't gate anything."
 - Modify: `src/engine/music.h` — add `ch2_notes` field to `MusicTrack`
 - Modify: `src/engine/music.c` — emit CH2 notes alongside CH1 in `music_play` + `music_tick`
 
-- [ ] **Step 1: Add ch2_notes to MusicTrack struct in music.h**
+- [x] **Step 1: Add ch2_notes to MusicTrack struct in music.h**
 
 ```c
 typedef struct {
@@ -996,7 +1019,7 @@ typedef struct {
 } MusicTrack;
 ```
 
-- [ ] **Step 2: Add emit_note_ch2 helper in music.c**
+- [x] **Step 2: Add emit_note_ch2 helper in music.c**
 
 In `src/engine/music.c`, after the existing `emit_note` function, add a CH2 emitter:
 
@@ -1024,7 +1047,7 @@ static void emit_note_ch2(uint8_t note) {
 }
 ```
 
-- [ ] **Step 3: Call emit_note_ch2 from music_play + music_tick**
+- [x] **Step 3: Call emit_note_ch2 from music_play + music_tick**
 
 In `music_play`, after the existing `emit_note(track->steps[0].note);`:
 
@@ -1054,7 +1077,7 @@ void music_stop(void) {
 }
 ```
 
-- [ ] **Step 4: Build**
+- [x] **Step 4: Build**
 
 ```bash
 make 2>&1 | tail -3
@@ -1062,7 +1085,7 @@ make 2>&1 | tail -3
 
 Expected: clean build. Existing title_theme.c initializer doesn't set `ch2_notes` → it stays NULL → CH2 emit calls are skipped → existing playback unchanged.
 
-- [ ] **Step 5: Verify existing host tests still pass**
+- [x] **Step 5: Verify existing host tests still pass**
 
 ```bash
 make test 2>&1 | tail -5
@@ -1070,7 +1093,7 @@ make test 2>&1 | tail -5
 
 Expected: all 27 music tests still pass (the CH2 extension is transparent to the existing test code since `ch2_notes` defaults to NULL in all test fixtures).
 
-- [ ] **Step 6: Add host tests for the CH2 path**
+- [x] **Step 6: Add host tests for the CH2 path**
 
 In `test/test_music.c`, add new test functions covering CH2:
 
@@ -1114,7 +1137,7 @@ Wire both into `main` at the bottom of the existing test list:
     test_ch2_null_safe();
 ```
 
-- [ ] **Step 7: Run tests**
+- [x] **Step 7: Run tests**
 
 ```bash
 make test 2>&1 | tail -5
@@ -1122,7 +1145,7 @@ make test 2>&1 | tail -5
 
 Expected: `Tests run: 29` (was 27, added 2) `Failed: 0`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/engine/music.h src/engine/music.c test/test_music.c
@@ -1145,7 +1168,9 @@ host tests cover lockstep + NULL safety. All 29 tests pass."
 
 ## Phase 5 — Title theme: CH2 harmony layer
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-26 — `2426186`
+
+> Deviation: scope grew beyond the planned CH2 harmony to also include a CH4 kick/snare drum track, requiring a further music-engine extension.
 
 **Goal**: Add a CH2 harmony part to the existing 32-step title theme. End state: title screen plays a 2-voice melody (CH1 lead + CH2 harmony) instead of single-voice CH1.
 
@@ -1156,7 +1181,7 @@ host tests cover lockstep + NULL safety. All 29 tests pass."
 **Files:**
 - Modify: `src/game/title_theme.c` — add the CH2 array
 
-- [ ] **Step 1: Add the CH2 note array to title_theme.c**
+- [x] **Step 1: Add the CH2 note array to title_theme.c**
 
 In `src/game/title_theme.c`, after the existing `TITLE_THEME_STEPS[32]` definition, add the harmony:
 
@@ -1195,17 +1220,17 @@ const MusicTrack TITLE_THEME = {
 };
 ```
 
-- [ ] **Step 2: Build**
+- [x] **Step 2: Build**
 
 ```bash
 make 2>&1 | tail -3
 ```
 
-- [ ] **Step 3: Verify in mGBA**
+- [x] **Step 3: Verify in mGBA**
 
 Open ROM in mGBA. Title screen should now play 2-voice music (CH1 melody + CH2 harmony layer). The harmony should sound musically supportive (not clashy). Move the d-pad to fire sfx_move on CH2 — harmony should briefly drop out for the click then resume.
 
-- [ ] **Step 4: Commit (and iterate if it sounds off)**
+- [x] **Step 4: Commit (and iterate if it sounds off)**
 
 ```bash
 git add src/game/title_theme.c
@@ -1229,7 +1254,7 @@ If the harmony sounds wrong on first listen, treat it as polish iteration (simil
 
 ## Phase 6 — Puzzle-start CH1 stinger
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-26 — `d5b4cc1`
 
 **Goal**: When PLAY scene loads (fresh puzzle, NOT continuing in-progress), a brief 4-note CH1 fanfare plays. Gives the PLAY scene audio identity to pair with the music-having title.
 
@@ -1242,7 +1267,7 @@ If the harmony sounds wrong on first listen, treat it as polish iteration (simil
 - Modify: `src/game/scene_play.c` — play stinger in play_init when starting fresh
 - Modify: `Makefile` — add play_sfx.c to SRC
 
-- [ ] **Step 1: Create play_sfx.h**
+- [x] **Step 1: Create play_sfx.h**
 
 ```c
 #ifndef GAME_PLAY_SFX_H
@@ -1257,7 +1282,7 @@ extern const MusicTrack PLAY_STINGER;
 #endif
 ```
 
-- [ ] **Step 2: Create play_sfx.c**
+- [x] **Step 2: Create play_sfx.c**
 
 ```c
 #include "play_sfx.h"
@@ -1279,7 +1304,7 @@ const MusicTrack PLAY_STINGER = {
 };
 ```
 
-- [ ] **Step 3: Add to Makefile SRC list**
+- [x] **Step 3: Add to Makefile SRC list**
 
 ```makefile
 SRC := src/main.c \
@@ -1291,7 +1316,7 @@ SRC := src/main.c \
        src/game/title_theme.c src/game/play_sfx.c
 ```
 
-- [ ] **Step 4: Wire stinger in play_init**
+- [x] **Step 4: Wire stinger in play_init**
 
 In `src/game/scene_play.c`, add include at top:
 
@@ -1311,17 +1336,17 @@ In `play_init`, after the existing init code (palette reset, save_load, layout c
     }
 ```
 
-- [ ] **Step 5: Build**
+- [x] **Step 5: Build**
 
 ```bash
 make 2>&1 | tail -3
 ```
 
-- [ ] **Step 6: Verify in mGBA**
+- [x] **Step 6: Verify in mGBA**
 
 Open ROM → NEW GAME → PLAY scene loads. Stinger should play (~1 second, 4 ascending notes). If you immediately solve a group (sfx_correct fires on CH1), the stinger gets cut off cleanly. Quit to TITLE, then choose CONTINUE on an in-progress puzzle — NO stinger should play.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/game/play_sfx.h src/game/play_sfx.c src/game/scene_play.c Makefile
@@ -1344,7 +1369,10 @@ play_sfx module isolates the stinger data from scene logic."
 
 ## Phase 7 — Puzzle-select scene + replay flow
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-26 — `e051c37`, `f25b850`, `8af305d`, `a5c047f`, `085d8f3`
+
+> Deviation: `a5c047f` moved `sfx_move` from CH2 → CH3 because it was chopping the Phase 5 harmony layer on every cursor move. The channel table in Architecture Notes has been corrected.
+> Discoveries: `085d8f3` fixed a per-puzzle records sentinel bug (`best_tries == 0` is valid — a perfect game — but was read as "no record") and raised `sfx_reject` audibility. See top-of-plan Discoveries.
 
 **Goal**: New SCENE_PUZZLE_SELECT — visible from TITLE menu (only after at least 1 puzzle completed), shows a grid of all puzzles (50 cells), highlights completed ones in their hardest-tier color, lets player pick a completed puzzle to replay. Replay plays the chosen puzzle without advancing `current_puzzle_index`; on WIN, returns to puzzle-select rather than next puzzle.
 
@@ -1369,7 +1397,7 @@ This is the biggest phase — split into 4 tasks: scene file + grid render, inpu
 - Create: `src/game/scene_puzzle_select.c` — scene scaffold
 - Modify: `Makefile` — add scene_puzzle_select.c to SRC
 
-- [ ] **Step 1: Add SCENE_PUZZLE_SELECT enum value**
+- [x] **Step 1: Add SCENE_PUZZLE_SELECT enum value**
 
 In `src/game/game_state.h`, update Scene enum:
 
@@ -1384,7 +1412,7 @@ typedef enum {
 } Scene;
 ```
 
-- [ ] **Step 2: Add replay_puzzle_index to scene_handoff.h**
+- [x] **Step 2: Add replay_puzzle_index to scene_handoff.h**
 
 ```c
 // Set by SCENE_PUZZLE_SELECT before transitioning to SCENE_PLAY. Sentinel
@@ -1397,7 +1425,7 @@ extern uint8_t replay_puzzle_index;
 #define REPLAY_NONE 0xFF
 ```
 
-- [ ] **Step 3: Define replay_puzzle_index in main.c**
+- [x] **Step 3: Define replay_puzzle_index in main.c**
 
 In `src/main.c`, alongside `last_puzzle_result`:
 
@@ -1405,7 +1433,7 @@ In `src/main.c`, alongside `last_puzzle_result`:
 uint8_t replay_puzzle_index = REPLAY_NONE;
 ```
 
-- [ ] **Step 4: Add scene to vtable in main.c**
+- [x] **Step 4: Add scene to vtable in main.c**
 
 Add the extern + table entry:
 
@@ -1419,7 +1447,7 @@ SceneVTable SCENES[6];
 SCENES[SCENE_PUZZLE_SELECT] = SCENE_PUZZLE_SELECT_VTABLE;
 ```
 
-- [ ] **Step 5: Create the scene scaffold src/game/scene_puzzle_select.c**
+- [x] **Step 5: Create the scene scaffold src/game/scene_puzzle_select.c**
 
 ```c
 #include "scene.h"
@@ -1605,7 +1633,7 @@ const SceneVTable SCENE_PUZZLE_SELECT_VTABLE = {
 };
 ```
 
-- [ ] **Step 6: Add to Makefile SRC**
+- [x] **Step 6: Add to Makefile SRC**
 
 ```makefile
 SRC := src/main.c \
@@ -1616,7 +1644,7 @@ SRC := src/main.c \
        src/game/title_theme.c src/game/play_sfx.c
 ```
 
-- [ ] **Step 7: Build**
+- [x] **Step 7: Build**
 
 ```bash
 make 2>&1 | tail -5
@@ -1624,7 +1652,7 @@ make 2>&1 | tail -5
 
 Expected: clean build. The new scene file may surface missing extern declarations or constant references — fix as they come up.
 
-- [ ] **Step 8: Commit (scene scaffold; not yet reachable from TITLE)**
+- [x] **Step 8: Commit (scene scaffold; not yet reachable from TITLE)**
 
 ```bash
 git add src/game/game_state.h src/game/scene_handoff.h src/main.c \
@@ -1646,7 +1674,7 @@ Scene table grew from 5 to 6 entries. replay_puzzle_index global
 **Files:**
 - Modify: `src/game/scene_title.c` — add "PUZZLES" menu option (visible iff any puzzle is completed)
 
-- [ ] **Step 1: Add menu enum entry**
+- [x] **Step 1: Add menu enum entry**
 
 In scene_title.c, at the top, add a new TitleMenuItem:
 
@@ -1660,7 +1688,7 @@ typedef enum {
 } TitleMenuItem;
 ```
 
-- [ ] **Step 2: Add visibility flag + menu count logic**
+- [x] **Step 2: Add visibility flag + menu count logic**
 
 In TitleState:
 
@@ -1704,7 +1732,7 @@ Update `menu_item_count`: bump by 1 when puzzles available:
     }
 ```
 
-- [ ] **Step 3: Render PUZZLES menu line + handle selection**
+- [x] **Step 3: Render PUZZLES menu line + handle selection**
 
 In `title_render`, render the PUZZLES option after the existing menu items (at the appropriate row). Use the same `>` cursor convention. The trick: the cursor index for PUZZLES depends on what other items are visible.
 
@@ -1757,7 +1785,7 @@ In `title_update`'s selection handler, add a branch for PUZZLES:
 
 This integrates with the existing branched logic that handles other menu items. The exact integration depends on the existing structure — read the current title_update before editing.
 
-- [ ] **Step 4: Build + verify in mGBA**
+- [x] **Step 4: Build + verify in mGBA**
 
 ```bash
 make 2>&1 | tail -3
@@ -1771,7 +1799,7 @@ Test flow:
 5. In puzzle-select: cursor over puzzle 2 (not completed) shows "NOT YET PLAYED"; press A → sfx_reject (rejection sound, no transition).
 6. Press B from puzzle-select → back to TITLE.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/game/scene_title.c
@@ -1789,7 +1817,7 @@ any completed puzzle exists."
 - Modify: `src/game/scene_play.c` — when replay_puzzle_index != REPLAY_NONE, load that puzzle
 - Modify: `src/game/scene_win.c` — when replay_puzzle_index != REPLAY_NONE, return to SCENE_PUZZLE_SELECT instead of next puzzle
 
-- [ ] **Step 1: scene_play — branch on replay_puzzle_index**
+- [x] **Step 1: scene_play — branch on replay_puzzle_index**
 
 In scene_play.c's `play_init`, after save_load:
 
@@ -1851,7 +1879,7 @@ But the completed_bits + per-puzzle records updates SHOULD fire (replay can set 
                 }
 ```
 
-- [ ] **Step 2: scene_win — return to puzzle-select on replay WIN**
+- [x] **Step 2: scene_win — return to puzzle-select on replay WIN**
 
 In scene_win's `win_update`, the START input handler currently transitions to SCENE_PLAY or SCENE_ALL_DONE. Add a check:
 
@@ -1874,7 +1902,7 @@ In scene_win's `win_update`, the START input handler currently transitions to SC
     }
 ```
 
-- [ ] **Step 3: scene_lose — also clear replay flag on exit**
+- [x] **Step 3: scene_lose — also clear replay flag on exit**
 
 Similar: in scene_lose's input handlers (RETRY / SKIP / SELECT-quit), if `replay_puzzle_index != REPLAY_NONE`, return to SCENE_PUZZLE_SELECT instead of SCENE_PLAY (RETRY) or normal progression. Or simpler: any exit from scene_lose during a replay returns to puzzle-select.
 
@@ -1905,7 +1933,7 @@ Actually losing during a replay is unusual — most replays are by players tryin
     }
 ```
 
-- [ ] **Step 4: Build + verify in mGBA**
+- [x] **Step 4: Build + verify in mGBA**
 
 ```bash
 make 2>&1 | tail -3
@@ -1918,7 +1946,7 @@ Test flow:
 4. Back in PUZZLE_SELECT: focused stats for puzzle 1 should now show the NEW best time/tries.
 5. B → TITLE. The TITLE's CONTINUE should still point to your original linear progression (puzzle 4, not back to 2).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/game/scene_play.c src/game/scene_win.c src/game/scene_lose.c
@@ -1945,7 +1973,7 @@ restarts same puzzle in replay mode."
 
 ## Phase 8 — Smaller ALL_DONE polish
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-26 — `41cd98c`
 
 **Goal**: ALL_DONE scene gets a longer chiptune flourish + scrolling "thanks for playing" text. No big animation. End state: hitting ALL_DONE feels like a genuine milestone (audio is the payoff).
 
@@ -1957,7 +1985,7 @@ restarts same puzzle in replay mode."
 - Create: `src/game/all_done_theme.c` + `src/game/all_done_theme.h`
 - Modify: `src/game/scene_all_done.c` — play fanfare on init, scroll header text
 
-- [ ] **Step 1: Create all_done_theme.c**
+- [x] **Step 1: Create all_done_theme.c**
 
 ```c
 #include "all_done_theme.h"
@@ -2003,7 +2031,7 @@ extern const MusicTrack ALL_DONE_FANFARE;
 #endif
 ```
 
-- [ ] **Step 2: Scroll the header text in scene_all_done**
+- [x] **Step 2: Scroll the header text in scene_all_done**
 
 In scene_all_done.c, add scroll-position state:
 
@@ -2043,14 +2071,14 @@ This is a small enough change that the executor can implement it directly. Speci
     }
 ```
 
-- [ ] **Step 3: Add all_done_theme.c to Makefile**
+- [x] **Step 3: Add all_done_theme.c to Makefile**
 
 ```makefile
 SRC := ... \
        src/game/all_done_theme.c
 ```
 
-- [ ] **Step 4: Build + verify in mGBA**
+- [x] **Step 4: Build + verify in mGBA**
 
 ```bash
 make 2>&1 | tail -3
@@ -2061,7 +2089,7 @@ Trigger ALL_DONE by completing all 30 (or 50) puzzles, OR by using mGBA's memory
 - Play the 10-second 2-voice fanfare
 - After fanfare ends, screen + menu work normally (START → TITLE)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/game/all_done_theme.h src/game/all_done_theme.c \
@@ -2084,7 +2112,7 @@ Phase 4. No big animation — audio is the payoff."
 
 ## Phase 9 — Content: +20 puzzles (to 50 total) + v1.2 release
 
-**Execution Status:** ⬜ NOT STARTED
+**Execution Status:** ✅ SHIPPED 2026-05-27 — `69a19e4`, `74f045d`, `b4e2dc9`; tag `v1.2` + GitHub release published 2026-05-27
 
 **Goal**: Author 20 more puzzles (IDs 31-50) and tag v1.2.
 
@@ -2101,7 +2129,7 @@ The executor (or agent) authors puzzles 31-50 following the same simple-classifi
 - No within-puzzle duplicates
 - No name = word collision
 
-- [ ] **Step 1: Author puzzles 31-40 (or any 10-puzzle batch)**
+- [x] **Step 1: Author puzzles 31-40 (or any 10-puzzle batch)**
 
 Pick 10 themes that haven't been used (or fresh angles on used themes). Example themes that haven't been deeply explored: video games / pop culture, weather phenomena, building types, dance styles, gym/fitness, world capitals beyond the obvious, kitchen appliances, beverages by region, board games, etc.
 
@@ -2112,7 +2140,7 @@ git add content/puzzles.json
 git commit -m "v1.2.9.1: author puzzles 31-40"
 ```
 
-- [ ] **Step 2: Author puzzles 41-50**
+- [x] **Step 2: Author puzzles 41-50**
 
 Same pattern. Append, validate, commit:
 
@@ -2121,7 +2149,7 @@ git add content/puzzles.json
 git commit -m "v1.2.9.2: author puzzles 41-50 (50-puzzle bank complete)"
 ```
 
-- [ ] **Step 3: Full test pass + ROM stats**
+- [x] **Step 3: Full test pass + ROM stats**
 
 ```bash
 make clean && make && make test
@@ -2136,7 +2164,7 @@ Expected: ROM still 65,536 bytes (bank-padded). Usage up by ~5KB from 20 new puz
 **Files:**
 - Modify: `README.md` — bump version mentions
 
-- [ ] **Step 1: README updates**
+- [x] **Step 1: README updates**
 
 Update the project status line:
 ```markdown
@@ -2145,7 +2173,7 @@ Update the project status line:
 
 Note that "Each puzzle has 16 words..." stays the same. Update the puzzle count from 30 to 50 in the project description.
 
-- [ ] **Step 2: Tag v1.2**
+- [x] **Step 2: Tag v1.2**
 
 ```bash
 git tag -a v1.2 -m "Game Boy Connections v1.2 — Replay & Polish
@@ -2170,7 +2198,7 @@ Same ROM works on both DMG and GBC. Backwards-compatible save format
 (legacy saves preserved)."
 ```
 
-- [ ] **Step 3: Push + create GitHub release**
+- [x] **Step 3: Push + create GitHub release**
 
 ```bash
 git push origin main
@@ -2178,7 +2206,7 @@ git push origin v1.2
 gh release create v1.2 build/gameboygame.gb --title "Game Boy Connections v1.2" --notes-from-tag
 ```
 
-- [ ] **Step 4: Update plan banners to ✅ SHIPPED**
+- [x] **Step 4: Update plan banners to ✅ SHIPPED**
 
 Mark all phases shipped in the top-of-plan execution table + each per-phase banner. Add celebration:
 
@@ -2198,20 +2226,22 @@ Commit + push the plan update.
 
 ## End of Plan
 
-When all 9 phases ship and their banners are updated, v1.2 is released. The artifact:
+🎉 **Plan complete — all 9 phases shipped, v1.2 tagged and released 2026-05-27.** The artifact as delivered:
 
 - 50-puzzle bank with replay support
 - Save migration preserving v1.0/v1.1 player progress
-- Multi-voice title music + puzzle-start stinger + ALL_DONE fanfare
+- Multi-voice title music (CH1 melody + CH2 harmony + CH4 drums) + puzzle-start stinger + ALL_DONE fanfare
 - Cascade-bar slide-in animations
-- Tiered celebrations at every-5 milestones (lifetime + streak)
+- Tiered celebrations at every-5 milestones (lifetime + streak) **plus an all-puzzles-done tier**
 - Same ROM works on DMG and GBC (unchanged from v1.1)
-- All host tests passing (74 → 76 with 2 new CH2 tests)
+- **91 host tests passing** — 21 puzzle logic, 26 layout, 31 music, 13 codegen. (The plan predicted "74 → 76 with 2 new CH2 tests"; the music suite grew considerably more than forecast, largely because the unplanned CH4 drum work needed its own coverage.)
+
+**Shipped after the v1.2 tag:** README screenshots + mGBA troubleshooting section; hardware verification on Game Boy Pocket and Game Boy Advance via EverDrive GB X7; streak-reset bug fix released as **v1.2.1** on 2026-06-08.
 
 **Deferred to v1.3+:**
-- Banked puzzle data (would unlock 100+ puzzles)
-- Hardware verification on real DMG via flash cart
-- Hint system (mentioned in Plan D survey)
+- **Banked puzzle data (would unlock 100+ puzzles) — now the gating item.** Post-release measurement: 28,456 of 32,768 addressable bytes used, ~4.1KB free, ~212 bytes per puzzle. No banking code exists, so banks 2–3 are unreachable. Two independent ceilings apply: free ROM, and `MAX_PUZZLES_SUPPORTED 64` (baked into the v2 save struct as `completed_bits[8]` + two 64-entry arrays). Going past 64 puzzles needs both MBC1 bank switching *and* a save v3 migration. Note that ~4.1KB is shared between content and code — adding 14 puzzles to reach the 64 cap would consume ~71% of it and effectively block the hint system and multi-channel SFX below until banking lands.
+- ~~Hardware verification on real DMG via flash cart~~ — ✅ **done post-release** (2026-06-02, `d994e8b`): verified on Game Boy Pocket and Game Boy Advance via EverDrive GB X7. Since GBA runs GBC titles on its native LR35902 co-processor, GBC compatibility is implicitly covered.
+- Hint system (mentioned in Plan D survey) — needs ROM space; blocked behind banking
 - Daily-puzzle mode (user declined due to RTC complexity)
-- Multi-channel SFX (current SFX still single-channel; would unlock richer audio events like layered correct-chime)
-- LSDJ tracker integration (out of scope per user preference)
+- Multi-channel SFX (current SFX still single-channel; would unlock richer audio events like layered correct-chime) — needs ROM space; blocked behind banking
+- LSDJ tracker integration (out of scope per user preference — music stays minimal and hand-coded)
